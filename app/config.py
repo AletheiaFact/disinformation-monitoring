@@ -30,7 +30,7 @@ class Settings(BaseSettings):
 
     # Filtering and Submission
     minimum_save_score: int = 20  # Minimum score to save content to database
-    submission_score_threshold: int = 35  # Minimum score to submit to AletheiaFact
+    submission_score_threshold: int = 38  # Minimum score to submit to AletheiaFact (increased from 35)
     max_batch_submission: int = 100
     auto_submit_enabled: bool = False  # Enable/disable automatic submission to AletheiaFact
 

@@ -60,8 +60,8 @@ def setup_scheduler():
         trigger=IntervalTrigger(minutes=settings.extraction_interval_minutes),
         id='extract_all_sources',
         name='Extract from all RSS sources',
-        replace_existing=True,
-        next_run_time=datetime.now()  # Run immediately on startup
+        replace_existing=True
+        # Will run after the configured interval, not immediately on startup
     )
 
     logger.info(

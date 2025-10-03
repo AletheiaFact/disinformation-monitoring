@@ -198,6 +198,46 @@ CONTROVERSY_KEYWORDS = {
 }
 
 # ============================================================================
+# VAGUE LANGUAGE & OFFICIAL GUIDANCE (Scoring Modifiers)
+# ============================================================================
+
+# Speculation patterns (heavy penalty - non-checkable speculation)
+SPECULATION_KEYWORDS = {
+    'pode ser que', 'é possível que', 'provavelmente', 'possivelmente',
+    'talvez', 'há rumores', 'dizem que', 'fontes não identificadas',
+    'acredita-se', 'aparentemente', 'supostamente', 'presumivelmente'
+}
+
+# Conditional/future statements (not fact-checkable)
+CONDITIONAL_PATTERN = re.compile(
+    r'\b(se acontecer|caso ocorra|haveremos de|iremos|vamos fazer|poderá|'
+    r'poderia|teria|seria|faria|quando houver)\b',
+    re.IGNORECASE
+)
+
+# Vague quantifiers (mild penalty)
+VAGUE_QUANTIFIERS = {
+    'alguns', 'diversos', 'vários', 'muitos', 'poucos',
+    'em breve', 'logo', 'futuramente', 'em algum momento'
+}
+
+# Official guidance patterns (should NOT be penalized - these are fact-checkable directives)
+OFFICIAL_GUIDANCE_KEYWORDS = {
+    'é recomendado', 'é recomendável', 'orienta-se', 'deve-se',
+    'é obrigatório', 'é necessário', 'é exigido', 'determina que',
+    'conforme determina', 'segundo a lei', 'nos termos da', 'exige',
+    'registro de', 'deve conter', 'é obrigatória'
+}
+
+# Health/Safety advisory keywords (high priority for fact-checking)
+HEALTH_SAFETY_ADVISORY = {
+    'vigilância sanitária', 'anvisa', 'ministério da saúde',
+    'alerta sanitário', 'notificação', 'orientação sanitária',
+    'risco à saúde', 'intoxicação', 'contaminação', 'surto',
+    'apevisa', 'visa', 'agência sanitária', 'sesab', 'secretaria de saúde'
+}
+
+# ============================================================================
 # SOURCE CREDIBILITY (Domain Lists)
 # ============================================================================
 HIGH_CREDIBILITY_SOURCES = {
@@ -339,13 +379,24 @@ class PreFilter:
         """
         Score fact-checkable indicators (30 points max).
 
-        Priority scoring (additive, capped at 30):
-        - Government entities: 18 points (HIGHEST - público interest + verifiable)
-        - Political keywords: 15 points (corruption, legislation, investigations)
-        - Social relevance: 12 points (human rights, public services, environment)
-        - Health/Science: 10 points (health misinformation risk, scientific claims)
-        - Attribution keywords: 8 points (afirmou, segundo, etc. - claim indicators)
-        - Verifiable data: 6 points (percentages, currency, specific numbers)
+        REBALANCED: Tiered scoring to reduce keyword inflation + emphasis on verifiability.
+
+        Base Topic Score (pick highest, not additive):
+        - Government entities: 12 points (reduced from 18)
+        - Political keywords: 10 points (reduced from 15)
+        - Social relevance: 8 points (reduced from 12)
+        - Health/Science: 8 points (reduced from 10)
+
+        Modifiers (additive on top of base):
+        - Verifiable data: 8-10 points (INCREASED - critical for checkability)
+        - Attribution keywords: 6 points (reduced from 8)
+        - Direct quotes: 8 points (NEW - highest verifiability)
+        - Specific entities: 4 points (NEW - named people/orgs)
+
+        Penalties:
+        - Vague language: -10 per term (increased from -8)
+        - Noise content: -30 (unchanged)
+        - No data + no attribution: -5 (NEW)
 
         Args:
             text: Lowercased full text (title + content)
@@ -355,62 +406,104 @@ class PreFilter:
         """
         score = 0
 
-        # A. Government/Institutional Entities (18 points) - HIGHEST PRIORITY
-        # O(n) check but n is small and uses set intersection
+        # STEP 1: Base Topic Score (pick highest, not additive)
+        base_score = 0
+
         if any(entity in text for entity in GOVERNMENT_ENTITIES):
-            score += 18
+            base_score = max(base_score, 12)  # Reduced from 18
 
-        # B. Political Keywords (15 points)
-        # Covers corruption, investigations, legislation, judicial processes
         if any(kw in text for kw in POLITICAL_KEYWORDS):
-            score += 15
+            base_score = max(base_score, 10)  # Reduced from 15
 
-        # C. Social Relevance Keywords (12 points)
-        # Human rights, public services, social issues
         if any(kw in text for kw in SOCIAL_RELEVANCE_KEYWORDS):
-            score += 12
+            base_score = max(base_score, 8)   # Reduced from 12
 
-        # D. Health/Science Keywords (10 points)
-        # Health misinformation, scientific claims
         has_health = any(kw in text for kw in HEALTH_KEYWORDS)
         has_science = any(kw in text for kw in SCIENCE_KEYWORDS)
         if has_health or has_science:
-            score += 10
+            base_score = max(base_score, 8)   # Reduced from 10
 
-        # E. Attribution Keywords (8 points)
-        # Indicates someone made a claim (afirmou, declarou, segundo, etc.)
-        if any(kw in text for kw in ATTRIBUTION_KEYWORDS):
+        score += base_score
+
+        # STEP 2: Verifiability Modifiers (additive)
+
+        # A. Verifiable Data (HIGHEST PRIORITY - increased weight)
+        has_data = False
+        if PERCENTAGE_PATTERN.search(text):
+            score += 10  # Increased from 6 - percentages are highly checkable
+            has_data = True
+        elif CURRENCY_BRL_PATTERN.search(text) or CURRENCY_USD_PATTERN.search(text):
+            score += 10  # Increased from 6 - currency values are specific
+            has_data = True
+        elif LARGE_NUMBER_PATTERN.search(text):
+            score += 8   # Increased from 5
+            has_data = True
+        elif DATE_PATTERN.search(text):
+            score += 6   # Increased from 4
+            has_data = True
+        elif NUMBER_PATTERN.search(text):
+            score += 4   # Increased from 3
+            has_data = True
+
+        # B. Direct Quotes (NEW - highly verifiable)
+        if re.search(r'["""]\s*.{20,}\s*["""]', text):
             score += 8
 
-        # F. Verifiable Data (6 points) - Use compiled patterns for performance
-        # Priority: Percentage > Currency > Large numbers > Dates > Generic numbers
-        if PERCENTAGE_PATTERN.search(text):
-            score += 6
-        elif CURRENCY_BRL_PATTERN.search(text) or CURRENCY_USD_PATTERN.search(text):
-            score += 6
-        elif LARGE_NUMBER_PATTERN.search(text):
-            score += 5
-        elif DATE_PATTERN.search(text):
+        # C. Attribution Keywords (reduced weight)
+        has_attribution = any(kw in text for kw in ATTRIBUTION_KEYWORDS)
+        if has_attribution:
+            score += 6  # Reduced from 8
+
+        # D. Specific Named Entities (NEW - capitals indicate proper nouns)
+        # Count sequences of capitalized words (names of people/organizations)
+        proper_nouns = re.findall(r'\b[A-ZÇÁÉÍÓÚÂÊÔÃÕ][a-zçáéíóúâêôãõ]+(?:\s+[A-ZÇÁÉÍÓÚÂÊÔÃÕ][a-zçáéíóúâêôãõ]+)+\b', text)
+        if len(proper_nouns) >= 2:  # At least 2 named entities
             score += 4
-        elif NUMBER_PATTERN.search(text):
-            score += 3
 
-        # G. Vague Language Penalty (subtract points for non-specific language)
-        vague_terms = ['alguns', 'diversos', 'vários', 'muitos', 'poucos',
-                       'em breve', 'logo', 'pode', 'podem', 'provavelmente', 'possivelmente',
-                       'há rumores', 'fontes próximas', 'fontes não identificadas',
-                       'pesquisa mostra', 'aponta estudo', 'recomendam', 'recomenda',
-                       'especialistas dizem', 'acredita-se', 'é possível', 'possíveis']
-        vague_count = sum(1 for term in vague_terms if term in text)
-        score -= (vague_count * 8)  # -8 points per vague term (increased from -5)
+        # STEP 3: Penalties & Bonuses
 
-        # H. Pure Noise Detection (navigation, CTAs, metadata)
+        # E. Context-Aware Vague Language Detection
+        # Distinguish between speculation (bad) vs official guidance (good)
+
+        # Check for official guidance first
+        has_official_guidance = any(pattern in text for pattern in OFFICIAL_GUIDANCE_KEYWORDS)
+        has_health_advisory = any(kw in text for kw in HEALTH_SAFETY_ADVISORY)
+
+        # Speculation penalty (heavy - non-checkable speculation)
+        speculation_count = sum(1 for term in SPECULATION_KEYWORDS if term in text)
+        if speculation_count > 0:
+            score -= speculation_count * 15  # Heavy penalty for speculation
+
+        # Conditional/future statements penalty (not fact-checkable)
+        conditional_matches = len(CONDITIONAL_PATTERN.findall(text))
+        if conditional_matches > 0:
+            score -= conditional_matches * 12  # Penalty for conditional futures
+
+        # Vague quantifiers penalty (mild)
+        vague_quant_count = sum(1 for term in VAGUE_QUANTIFIERS if term in text)
+        if vague_quant_count > 0 and not has_official_guidance:
+            score -= vague_quant_count * 8  # Only penalize if NOT official guidance
+
+        # Bonus for official guidance with government source
+        if has_official_guidance and base_score >= 12:  # Has government base
+            score += 6  # Bonus for official regulatory/legal guidance
+
+        # Bonus for health/safety advisories with specifics
+        if has_health_advisory and (has_data or has_attribution):
+            score += 8  # High priority for health advisories with verifiable elements
+
+        # F. Pure Noise Detection (navigation, CTAs, metadata)
         noise_terms = ['clique aqui', 'clique para', 'veja mais', 'saiba mais',
                        'leia mais', 'acesse', 'confira', 'veja também',
                        'notícias do dia', 'últimas notícias']
         noise_count = sum(1 for term in noise_terms if term in text)
         if noise_count >= 1:
             score -= 30  # Heavy penalty for pure noise content
+
+        # G. Missing Verification Signals (NEW)
+        # Penalize content with topic relevance but no verifiable elements
+        if base_score > 0 and not has_data and not has_attribution:
+            score -= 5  # Has topic but lacks checkable elements
 
         # Cap at 30 points maximum (after penalties)
         return max(0, min(score, 30))

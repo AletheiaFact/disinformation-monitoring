@@ -1,8 +1,9 @@
-"""Claim extraction module using minimal NLP (regex patterns) for Portuguese text
+"""Checkable content extraction module using minimal NLP (regex patterns) for Portuguese text
 
-This module implements the minimal NLP strategy defined in:
-- docs/02_MINIMAL_NLP_STRATEGY.md
-- docs/01_NOISE_VS_CHECKABLE_CONTENT.md
+This module extracts fact-checkable content including:
+- Claims (direct statements): "Ministro afirmou que inflação caiu 10%"
+- Affirmations (general verifiable statements): "Governo anunciou investimento de R$ 500 milhões"
+- Data-driven statements: "Desemprego atingiu 8% em janeiro"
 
 Philosophy: Regex + Smart Patterns > Heavy ML Models
 - 80% accuracy at 1% of the computational cost
@@ -26,6 +27,7 @@ NOISE_PATTERNS = [
     re.compile(r'(whatsapp|facebook|instagram|twitter|telegram)', re.IGNORECASE),
     re.compile(r'compartilhe|curta|inscreva-se|siga (o|a|nosso)', re.IGNORECASE),
     re.compile(r'foto:|imagem:|crédito:|reprodução|divulgação', re.IGNORECASE),
+    re.compile(r'baixe o app|download|📱|aplicativo g1', re.IGNORECASE),  # App CTAs
 ]
 
 # Vague language indicators (negative scoring)
@@ -97,6 +99,21 @@ PATTERN_ENTITY_ACTION = re.compile(
     re.IGNORECASE
 )
 
+# Pattern 7: Direct quotes with context
+# Example: "O ministro disse: 'Vamos investir R$ 100 milhões'"
+PATTERN_DIRECT_QUOTE = re.compile(
+    r'["""\']\s*([^"""\']{20,})\s*["""\']',
+    re.IGNORECASE
+)
+
+# Pattern 8: Verifiable affirmations (statements with data but no direct attribution)
+# Example: "A inflação atingiu 10% em dezembro"
+# Must have: subject + verb + verifiable data (number/percentage/currency)
+PATTERN_DATA_AFFIRMATION = re.compile(
+    r'\b(atingiu|alcançou|registrou|chegou|caiu|subiu|aumentou|diminuiu|cresceu|reduziu)\b',
+    re.IGNORECASE
+)
+
 # Government entity keywords (for bonus scoring)
 GOVERNMENT_ENTITIES = {
     'presidente', 'vice-presidente', 'ministro', 'ministério',
@@ -114,13 +131,15 @@ class SentenceScorer:
         """
         Score a sentence for fact-checkability (-100 to +100).
 
-        Scoring factors:
-        - Attribution patterns: +20 to +30
-        - Verifiable data: +5 to +15
-        - Government entities: +10
-        - Vague language: -10 to -20
-        - Opinion markers: -15
-        - Length optimization: +5 to -10
+        Enhanced scoring emphasizes verifiable elements:
+        - Direct quotes with attribution: +40 (HIGHEST - directly verifiable)
+        - Data + context: +35 (numbers/percentages with subject)
+        - Strong attribution + data: +35 (claims with verifiable elements)
+        - Attribution without data: +20-25
+        - Verifiable affirmations: +25 (factual statements without attribution)
+        - Government entities + action: +15
+        - Vague language: -15 per term (increased penalty)
+        - Opinion markers: -20 (increased penalty)
 
         Args:
             sentence: Input sentence
@@ -136,39 +155,72 @@ class SentenceScorer:
             if pattern.search(sent_lower):
                 return -100  # Instant disqualification
 
-        # A. Attribution patterns (strong indicator of claims)
+        # A1. Direct quotes (HIGHEST PRIORITY - directly verifiable)
+        has_quote = PATTERN_DIRECT_QUOTE.search(sentence)
+        if has_quote:
+            score += 40
+
+        # A2. Attribution patterns with data (second highest)
+        has_attribution = False
         if PATTERN_ENTITY_VERB_QUE.search(sentence):
             score += 30  # Strong attribution: "X afirmou que Y"
+            has_attribution = True
         elif PATTERN_SEGUNDO.search(sent_lower) or PATTERN_DE_ACORDO_COM.search(sent_lower):
             score += 25  # Reverse attribution: "Segundo X, Y"
+            has_attribution = True
         elif PATTERN_CONFORME.search(sent_lower):
             score += 20  # Weaker attribution: "Conforme X, Y"
+            has_attribution = True
         elif PATTERN_ENTITY_VERB_COLON.search(sentence):
             score += 25  # Colon attribution: "X garante: Y"
+            has_attribution = True
         elif PATTERN_ENTITY_ACTION.search(sentence):
             score += 20  # Action statement: "X anuncia Y"
+            has_attribution = True
 
-        # B. Verifiable data (specificity)
+        # B. Verifiable data (critical for checkability)
+        has_data = False
+        data_score = 0
         if PERCENTAGE_PATTERN.search(sentence):
-            score += 15  # Percentage = highly specific
+            data_score = 20  # Percentage = highly specific
+            has_data = True
         elif CURRENCY_BRL_PATTERN.search(sent_lower) or CURRENCY_USD_PATTERN.search(sent_lower):
-            score += 15  # Currency values
+            data_score = 20  # Currency values
+            has_data = True
         elif LARGE_NUMBER_PATTERN.search(sent_lower):
-            score += 10  # Large numbers (milhões, bilhões)
+            data_score = 15  # Large numbers (milhões, bilhões)
+            has_data = True
         elif DATE_PATTERN.search(sent_lower):
-            score += 8   # Specific dates
+            data_score = 10  # Specific dates
+            has_data = True
         elif NUMBER_PATTERN.search(sentence):
-            score += 5   # Any number
+            data_score = 8   # Any number
+            has_data = True
 
-        # C. Government entities (high-priority sources)
-        if any(entity in sent_lower for entity in GOVERNMENT_ENTITIES):
+        # Bonus: Data + attribution = highly checkable
+        if has_attribution and has_data:
+            score += 15  # Bonus for combining attribution with data
+
+        score += data_score
+
+        # C. Verifiable affirmations (data-driven statements without attribution)
+        # Example: "A inflação atingiu 10%" or "Desemprego caiu para 8%"
+        if has_data and PATTERN_DATA_AFFIRMATION.search(sent_lower):
+            score += 15  # Affirmation with verifiable data
+
+        # D. Government entities (high-priority sources)
+        has_gov_entity = any(entity in sent_lower for entity in GOVERNMENT_ENTITIES)
+        if has_gov_entity:
             score += 10
+            # Bonus if government entity + data
+            if has_data:
+                score += 5
 
-        # D. Vague language penalty
+        # E. Vague language penalty (increased)
         vague_count = sum(1 for term in VAGUE_KEYWORDS if term in sent_lower)
-        score -= vague_count * 10  # -10 per vague term
+        score -= vague_count * 15  # -15 per vague term (increased from -10)
 
-        # E. Opinion/subjective markers
+        # F. Opinion/subjective markers (increased penalty)
         opinion_patterns = [
             r'(acredito|acho|penso|imagino) que',
             r'na minha (opinião|visão)',
@@ -176,17 +228,22 @@ class SentenceScorer:
         ]
         for pattern in opinion_patterns:
             if re.search(pattern, sent_lower):
-                score -= 15
+                score -= 20  # Increased from -15
                 break
 
-        # F. Length optimization (prefer 50-150 chars)
+        # G. Length optimization (prefer 50-150 chars for concise claims)
         sent_len = len(sentence)
         if 50 <= sent_len <= 150:
             score += 5
         elif sent_len < 30:
-            score -= 10  # Too short = likely fragment
+            score -= 15  # Too short = likely fragment (increased penalty)
         elif sent_len > 200:
-            score -= 5   # Too long = may contain noise
+            score -= 10  # Too long = may contain noise (increased penalty)
+
+        # H. Context requirement: penalize if no subject/context
+        # Sentences starting with pronouns without clear antecedent
+        if re.match(r'^(ele|ela|eles|elas|isso|isto|aquilo)\s', sent_lower):
+            score -= 10  # Lacks clear subject
 
         return score
 
@@ -248,18 +305,27 @@ class ClaimExtractor:
         # Sort by score (highest first)
         scored_sentences.sort(reverse=True, key=lambda x: x[0])
 
-        # Select top sentences until char limit
+        # Select top sentences until char limit (target: 150-300 chars)
         selected = []
         char_count = 0
+        min_score_threshold = 15  # Only select sentences with decent checkability
 
         for score, sentence in scored_sentences:
+            # Skip low-scoring sentences
+            if score < min_score_threshold:
+                break
+
+            # Stop if we have 2+ sentences and would exceed limit
             if char_count + len(sentence) > max_chars and len(selected) >= 2:
                 break
+
             selected.append(sentence)
             char_count += len(sentence)
 
-            # Stop if we have enough high-quality claims
-            if len(selected) >= 5 and char_count >= 300:
+            # Stop if we have 2-3 high-quality sentences (150-300 chars target)
+            if len(selected) >= 2 and char_count >= 150:
+                break
+            if len(selected) >= 3 and char_count >= 250:
                 break
 
         if not selected:

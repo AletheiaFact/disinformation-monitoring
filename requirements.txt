@@ -10,3 +10,6 @@ langdetect==1.0.9
 httpx==0.25.2
 apscheduler==3.10.4
 python-dotenv==1.0.0
+
+# Optional: Entity extraction (NER)
+spacy>=3.7.0

@@ -12,6 +12,7 @@ from app.config import settings
 
 # Initial RSS sources for Brazilian news monitoring
 SOURCES = [
+    # High Credibility (4 sources)
     {
         "name": "G1",
         "rssUrl": "https://g1.globo.com/rss/g1/",
@@ -25,39 +26,29 @@ SOURCES = [
         "isActive": True
     },
     {
-        "name": "O Globo",
-        "rssUrl": "https://oglobo.globo.com/rss.xml",
-        "credibilityLevel": "high",
-        "isActive": True
-    },
-    {
-        "name": "UOL Notícias",
-        "rssUrl": "https://rss.uol.com.br/feed/noticias.xml",
+        "name": "BBC Brasil",
+        "rssUrl": "https://feeds.bbci.co.uk/portuguese/rss.xml",
         "credibilityLevel": "high",
         "isActive": True
     },
     {
         "name": "Estado de S.Paulo",
-        "rssUrl": "https://politica.estadao.com.br/rss/ultimas.xml",
+        "rssUrl": "https://www.estadao.com.br/rss/brasil.xml",
         "credibilityLevel": "high",
         "isActive": True
     },
+
+    # Medium Credibility (6 sources)
     {
-        "name": "R7 Notícias",
-        "rssUrl": "https://noticias.r7.com/brasil/feed.xml",
+        "name": "CNN Brasil",
+        "rssUrl": "https://www.cnnbrasil.com.br/feed/",
         "credibilityLevel": "medium",
         "isActive": True
     },
     {
-        "name": "CNN Brasil",
-        "rssUrl": "https://www.cnnbrasil.com.br/feed/",
-        "credibilityLevel": "high",
-        "isActive": True
-    },
-    {
-        "name": "BBC Brasil",
-        "rssUrl": "https://feeds.bbci.co.uk/portuguese/rss.xml",
-        "credibilityLevel": "high",
+        "name": "Poder360",
+        "rssUrl": "https://www.poder360.com.br/feed/",
+        "credibilityLevel": "medium",
         "isActive": True
     },
     {
@@ -67,9 +58,53 @@ SOURCES = [
         "isActive": True
     },
     {
-        "name": "Poder360",
-        "rssUrl": "https://www.poder360.com.br/feed/",
+        "name": "Gazeta do Povo",
+        "rssUrl": "https://www.gazetadopovo.com.br/feed/rss/republica.xml",
         "credibilityLevel": "medium",
+        "isActive": True
+    },
+    {
+        "name": "Metrópoles",
+        "rssUrl": "https://www.metropoles.com/feed",
+        "credibilityLevel": "medium",
+        "isActive": True
+    },
+    {
+        "name": "The Intercept Brasil",
+        "rssUrl": "https://www.intercept.com.br/feed/",
+        "credibilityLevel": "medium",
+        "isActive": True
+    },
+
+    # Low Credibility (5 sources - PRIORITY for misinformation monitoring)
+    {
+        "name": "Terça Livre",
+        "rssUrl": "https://tercalivre.com.br/feed/",
+        "credibilityLevel": "low",
+        "isActive": True
+    },
+    {
+        "name": "Jornal da Cidade Online",
+        "rssUrl": "https://www.jornaldacidadeonline.com.br/noticias/feed",
+        "credibilityLevel": "low",
+        "isActive": True
+    },
+    {
+        "name": "Brasil 247",
+        "rssUrl": "https://www.brasil247.com/feed",
+        "credibilityLevel": "low",
+        "isActive": True
+    },
+    {
+        "name": "Conexão Política",
+        "rssUrl": "https://www.conexaopolitica.com.br/feed/",
+        "credibilityLevel": "low",
+        "isActive": True
+    },
+    {
+        "name": "DCM",
+        "rssUrl": "https://www.diariodocentrodomundo.com.br/feed/",
+        "credibilityLevel": "low",
         "isActive": True
     }
 ]
