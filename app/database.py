@@ -42,6 +42,7 @@ class Database:
         # ExtractedContent indexes
         content_indexes = [
             IndexModel([("contentHash", ASCENDING)], unique=True),
+            IndexModel([("sourceUrl", ASCENDING)]),  # For fast duplicate URL checks
             IndexModel([("status", ASCENDING), ("extractedAt", DESCENDING)]),
             IndexModel([("preFilterScore", DESCENDING)]),
             IndexModel([("sourceName", ASCENDING)]),

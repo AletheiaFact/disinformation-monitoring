@@ -41,29 +41,42 @@ RSS Feeds → RSSExtractor → PreFilter (scoring) → MongoDB
                                           SubmissionService → OAuth2 → AletheiaFact API
 ```
 
-### Pre-Filter Scoring (60 points total)
+### Pre-Filter Scoring (60 points total, threshold: 38)
 
-**Content Quality (20 pts)**
-- Length ≥ 150 chars: 10 pts
-- Contains 2+ sentences: 10 pts
+**Tiered Base Scoring** (pick highest, not additive)
+- Government entities: 12 pts
+- Political keywords: 10 pts
+- Domain keywords: 8 pts
 
-**Fact-Checkable Indicators (30 pts)**
-- Numbers/percentages: 10 pts
-- Factual keywords (confirmou, anunciou, estudo, pesquisa): 10 pts
-- Domain keywords (governo, vacina, cientista): 10 pts
+**Verifiable Data** (10 pts each)
+- Percentages, currency, numbers with context
 
-**Source Risk Priority (10 pts)**
-- Low credibility: 10 pts (HIGHEST PRIORITY - likely misinformation)
+**Checkability Signals**
+- Direct quotes: +8 pts
+- Attributions: +6 pts
+- Named entities: +4 pts
+
+**Source Risk Priority**
+- Low credibility: 10 pts (HIGHEST PRIORITY - misinformation monitoring)
 - Medium credibility: 5 pts
 - High credibility: 3 pts
 
-**Submission Threshold**: 30 points
+**Context-Aware Penalties**
+- Speculation: -15 pts
+- Conditional statements: -12 pts
+- Vague language: -8 pts
 
-### RSS Sources (10 Brazilian news sites)
+**Bonuses**
+- Official guidance: +6 pts
+- Health/safety advisories: +8 pts
 
-**High Credibility**: G1, Folha, O Globo, Estadão, UOL, BBC Brasil, CNN Brasil
+### RSS Sources (15 balanced sources)
 
-**Medium Credibility**: R7, CartaCapital, Poder360
+**High Credibility** (4): G1, Folha de S.Paulo, BBC Brasil, Estado de S.Paulo
+
+**Medium Credibility** (6): CNN Brasil, Poder360, CartaCapital, Gazeta do Povo, Metrópoles, The Intercept Brasil
+
+**Low Credibility** (5): Terça Livre, Jornal da Cidade Online, Brasil 247, Conexão Política, DCM
 
 ## Configuration
 
@@ -81,7 +94,9 @@ ORY_SCOPE=openid offline_access
 # Optional
 RECAPTCHA_TOKEN=
 EXTRACTION_INTERVAL_MINUTES=30
-SUBMISSION_SCORE_THRESHOLD=30
+MINIMUM_SAVE_SCORE=20
+SUBMISSION_SCORE_THRESHOLD=38
+AUTO_SUBMIT_ENABLED=false
 MAX_BATCH_SUBMISSION=100
 ```
 
@@ -145,9 +160,24 @@ Submitted to AletheiaFact as:
 
 Impact areas detected via keywords: Politics, Health, Science, General.
 
+## Deduplication Strategy
+
+**Two-layer efficient deduplication**:
+
+1. **Early URL Check** (90% processing reduction)
+   - Normalize URL (remove tracking params, upgrade http→https)
+   - Check indexed `sourceUrl` before NLP processing
+   - Skip duplicate entries immediately
+
+2. **Content Hash Fallback**
+   - SHA-256 hash of `url + normalized_content`
+   - Catches same article on different URLs
+
+**Performance**: RSS feeds fetched normally, but duplicate entries skip claim extraction, scoring, and language detection.
+
 ## Status States
 
-- **pending**: Awaiting submission (score ≥ 30)
+- **pending**: Awaiting submission (score ≥ 38)
 - **submitted**: Successfully sent to AletheiaFact
 - **rejected**: Below score threshold
 - **failed**: Submission error (retryable)
@@ -160,7 +190,7 @@ Impact areas detected via keywords: Politics, Health, Science, General.
 
 **Low submission rate**: Review pre-filter scores in `/api/stats`, verify credibility levels
 
-**Duplicates**: System auto-deduplicates via SHA-256 hash of URL + content
+**Duplicates**: Automatically handled via URL normalization + indexed checks
 
 ## Success Metrics
 

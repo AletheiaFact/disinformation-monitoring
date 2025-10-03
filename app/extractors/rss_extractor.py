@@ -9,6 +9,7 @@ from motor.motor_asyncio import AsyncIOMotorDatabase
 from pymongo.errors import DuplicateKeyError
 
 from app.utils.hash import generate_content_hash
+from app.utils.url_normalizer import normalize_url
 from app.filters.pre_filter import PreFilter
 from app.models.extracted_content import ExtractedContent, ContentStatus
 from app.config import settings
@@ -92,6 +93,19 @@ class RSSExtractor:
         url = entry.get('link', '')
         if not url:
             logger.debug("Entry missing URL, skipping")
+            return None
+
+        # Normalize URL (remove tracking params, upgrade to https)
+        url = normalize_url(url)
+
+        # Early duplicate check - skip if URL already processed
+        # This avoids expensive NLP processing for duplicates
+        existing = await self.db.extracted_content.find_one(
+            {'sourceUrl': url},
+            {'_id': 1}  # Only fetch ID for speed
+        )
+        if existing:
+            logger.debug(f"URL already processed, skipping: {url}")
             return None
 
         # Extract title
