@@ -1,0 +1,246 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<rss version="2.0">
+  <channel>
+    <title>Tuning Test Feed - Disinformation Monitoring</title>
+    <link>http://test.example.com</link>
+    <description>Mock RSS feed with labeled content quality for tuning extraction and filtering logic</description>
+    <language>pt-BR</language>
+
+    <!-- ================================================================ -->
+    <!-- HIGH QUALITY - FACT-CHECKABLE CONTENT (Expected Score: 50-60) -->
+    <!-- ================================================================ -->
+
+    <!-- Example 1: Government + Numbers + Attribution -->
+    <item>
+      <title>Ministro anuncia investimento de R$ 500 milhões em infraestrutura</title>
+      <link>http://test.example.com/high-quality-1</link>
+      <description><![CDATA[
+        O ministro da Economia afirmou que o governo federal vai investir R$ 500 milhões em obras de infraestrutura até dezembro de 2025. Segundo o ministro, os recursos serão destinados para rodovias e ferrovias. A medida foi anunciada durante entrevista coletiva em Brasília nesta segunda-feira.
+      ]]></description>
+      <pubDate>Mon, 03 Oct 2025 10:00:00 GMT</pubDate>
+      <category>EXPECTED: HIGH (55-60 points)</category>
+      <category>government + currency + attribution + date</category>
+    </item>
+
+    <!-- Example 2: STF Decision + Percentage -->
+    <item>
+      <title>STF aprova por 8 votos a 3 mudança no sistema eleitoral</title>
+      <link>http://test.example.com/high-quality-2</link>
+      <description><![CDATA[
+        O Supremo Tribunal Federal aprovou nesta quarta-feira, por 8 votos a 3, mudanças no sistema eleitoral brasileiro. De acordo com o relator, a nova lei entrará em vigor nas eleições de 2026. O ministro declarou que a decisão fortalece a democracia.
+      ]]></description>
+      <pubDate>Wed, 01 Oct 2025 14:30:00 GMT</pubDate>
+      <category>EXPECTED: HIGH (52-58 points)</category>
+      <category>government + political + attribution + numbers</category>
+    </item>
+
+    <!-- Example 3: Health Data + Government Agency -->
+    <item>
+      <title>Ministério da Saúde confirma 1.500 casos de dengue em São Paulo</title>
+      <link>http://test.example.com/high-quality-3</link>
+      <description><![CDATA[
+        O Ministério da Saúde confirmou nesta terça-feira 1.500 casos de dengue na cidade de São Paulo desde janeiro. Segundo a pasta, houve um aumento de 45% em relação ao mesmo período do ano passado. A Anvisa recomendou reforço nas medidas preventivas.
+      ]]></description>
+      <pubDate>Tue, 02 Oct 2025 09:15:00 GMT</pubDate>
+      <category>EXPECTED: HIGH (54-60 points)</category>
+      <category>government + health + numbers + percentage + attribution</category>
+    </item>
+
+    <!-- Example 4: Corruption Investigation -->
+    <item>
+      <title>Polícia Federal investiga desvio de R$ 20 milhões em licitação</title>
+      <link>http://test.example.com/high-quality-4</link>
+      <description><![CDATA[
+        A Polícia Federal deflagrou operação para investigar suposto desvio de R$ 20 milhões em licitação do governo estadual. Segundo a PGR, cinco pessoas foram presas preventivamente. O Ministério Público Federal denunciou esquema de fraude que operava desde 2020.
+      ]]></description>
+      <pubDate>Thu, 27 Sep 2025 08:00:00 GMT</pubDate>
+      <category>EXPECTED: HIGH (56-60 points)</category>
+      <category>government + political + corruption + currency + attribution</category>
+    </item>
+
+    <!-- ================================================================ -->
+    <!-- MEDIUM QUALITY - MODERATELY CHECKABLE (Expected Score: 30-45) -->
+    <!-- ================================================================ -->
+
+    <!-- Example 5: Attribution but vague data -->
+    <item>
+      <title>Pesquisa mostra aprovação do governo em alta</title>
+      <link>http://test.example.com/medium-quality-1</link>
+      <description><![CDATA[
+        Segundo pesquisa divulgada hoje, a aprovação do governo aumentou nos últimos meses. De acordo com o instituto, muitos brasileiros aprovam as medidas econômicas. Os dados serão apresentados em breve com mais detalhes.
+      ]]></description>
+      <pubDate>Mon, 30 Sep 2025 11:00:00 GMT</pubDate>
+      <category>EXPECTED: MEDIUM (32-38 points)</category>
+      <category>political + attribution + vague language (muitos, em breve)</category>
+    </item>
+
+    <!-- Example 6: Social issue with some data -->
+    <item>
+      <title>Desigualdade social cresce em grandes cidades, aponta estudo</title>
+      <link>http://test.example.com/medium-quality-2</link>
+      <description><![CDATA[
+        Estudo da universidade federal aponta crescimento da desigualdade social nas grandes cidades brasileiras. Segundo pesquisadores, a situação piorou nos últimos anos. O relatório será publicado em outubro com dados completos.
+      ]]></description>
+      <pubDate>Sun, 29 Sep 2025 16:45:00 GMT</pubDate>
+      <category>EXPECTED: MEDIUM (35-42 points)</category>
+      <category>social relevance + attribution + science but lacks specific data</category>
+    </item>
+
+    <!-- Example 7: Health topic without government -->
+    <item>
+      <title>Médicos recomendam vacinação contra gripe para idosos</title>
+      <link>http://test.example.com/medium-quality-3</link>
+      <description><![CDATA[
+        Médicos da rede pública recomendam que idosos procurem postos de saúde para vacinação contra gripe. Conforme especialistas, a campanha deste ano é importante para prevenção. A vacina está disponível em diversos postos.
+      ]]></description>
+      <pubDate>Sat, 28 Sep 2025 13:20:00 GMT</pubDate>
+      <category>EXPECTED: MEDIUM (28-35 points)</category>
+      <category>health + attribution but no specific data or government</category>
+    </item>
+
+    <!-- Example 8: Political without strong attribution -->
+    <item>
+      <title>Câmara pode votar reforma tributária na próxima semana</title>
+      <link>http://test.example.com/medium-quality-4</link>
+      <description><![CDATA[
+        A Câmara dos Deputados pode votar a reforma tributária na próxima semana, segundo fontes do congresso. Diversos deputados defendem mudanças no texto. A votação dependerá de acordo entre os partidos.
+      ]]></description>
+      <pubDate>Fri, 27 Sep 2025 15:00:00 GMT</pubDate>
+      <category>EXPECTED: MEDIUM (38-44 points)</category>
+      <category>government + political but weak attribution (fontes) and speculation (pode)</category>
+    </item>
+
+    <!-- ================================================================ -->
+    <!-- LOW QUALITY - NOT FACT-CHECKABLE (Expected Score: 0-25) -->
+    <!-- ================================================================ -->
+
+    <!-- Example 9: Pure Entertainment -->
+    <item>
+      <title>Ator famoso posta foto de férias em resort de luxo</title>
+      <link>http://test.example.com/low-quality-1</link>
+      <description><![CDATA[
+        O ator postou fotos das suas férias em resort de luxo nas redes sociais nesta quarta-feira. Fãs comentaram as imagens elogiando o look escolhido pelo artista. A celebridade está aproveitando o descanso após novela. Veja as fotos na galeria.
+      ]]></description>
+      <pubDate>Wed, 25 Sep 2025 18:00:00 GMT</pubDate>
+      <category>EXPECTED: LOW (0-10 points)</category>
+      <category>entertainment + no fact-checkable content + noise (veja, galeria)</category>
+    </item>
+
+    <!-- Example 10: Sports Score -->
+    <item>
+      <title>Flamengo vence Palmeiras por 3 a 1 no Maracanã</title>
+      <link>http://test.example.com/low-quality-2</link>
+      <description><![CDATA[
+        O Flamengo venceu o Palmeiras por 3 a 1 neste domingo no Maracanã pelo Campeonato Brasileiro. Os gols foram marcados no segundo tempo. A torcida lotou o estádio para apoiar o time. O técnico elogiou o desempenho dos jogadores.
+      ]]></description>
+      <pubDate>Sun, 22 Sep 2025 20:30:00 GMT</pubDate>
+      <category>EXPECTED: LOW (5-15 points)</category>
+      <category>sports + no controversy + match results</category>
+    </item>
+
+    <!-- Example 11: Reality TV -->
+    <item>
+      <title>BBB: Participante é eliminado com 82% dos votos</title>
+      <link>http://test.example.com/low-quality-3</link>
+      <description><![CDATA[
+        O participante foi eliminado do Big Brother Brasil nesta terça-feira com 82% dos votos do público. A eliminação foi emocionante e surpreendeu os outros brothers. Veja os melhores momentos do paredão. Confira também os memes da eliminação nas redes sociais.
+      ]]></description>
+      <pubDate>Tue, 24 Sep 2025 22:45:00 GMT</pubDate>
+      <category>EXPECTED: LOW (0-8 points)</category>
+      <category>entertainment + reality TV + noise (veja, confira) + subjective (emocionante)</category>
+    </item>
+
+    <!-- Example 12: Celebrity Gossip -->
+    <item>
+      <title>Cantora anuncia separação de empresário após 3 anos juntos</title>
+      <link>http://test.example.com/low-quality-4</link>
+      <description><![CDATA[
+        A cantora anunciou nas redes sociais o fim do relacionamento com empresário após 3 anos juntos. Fãs lamentaram a separação e enviaram mensagens de apoio. O casal sempre foi discreto sobre a vida pessoal. Clique aqui para ver mais fotos do casal.
+      ]]></description>
+      <pubDate>Mon, 23 Sep 2025 19:00:00 GMT</pubDate>
+      <category>EXPECTED: LOW (2-12 points)</category>
+      <category>entertainment + celebrity + noise (clique aqui)</category>
+    </item>
+
+    <!-- ================================================================ -->
+    <!-- EDGE CASES - BORDERLINE CONTENT (Expected Score: 25-35) -->
+    <!-- ================================================================ -->
+
+    <!-- Example 13: Sports with Corruption (should NOT be penalized) -->
+    <item>
+      <title>CBF é investigada por manipulação de resultados em campeonatos</title>
+      <link>http://test.example.com/edge-case-1</link>
+      <description><![CDATA[
+        A Confederação Brasileira de Futebol está sendo investigada pela Polícia Federal por suspeita de manipulação de resultados. Segundo o Ministério Público, o esquema movimentou milhões de reais. A investigação foi aberta após denúncia anônima em agosto.
+      ]]></description>
+      <pubDate>Thu, 26 Sep 2025 12:00:00 GMT</pubDate>
+      <category>EXPECTED: HIGH (48-55 points) - Sports with corruption = CHECKABLE</category>
+      <category>sports + corruption + government investigation + should NOT be penalized</category>
+    </item>
+
+    <!-- Example 14: Opinion piece with political content -->
+    <item>
+      <title>Analista acredita que reforma será aprovada até dezembro</title>
+      <link>http://test.example.com/edge-case-2</link>
+      <description><![CDATA[
+        Na minha opinião, a reforma tributária será aprovada até dezembro, afirma analista político. Acho que os deputados vão encontrar um acordo em breve. A medida pode trazer mudanças importantes para a economia.
+      ]]></description>
+      <pubDate>Wed, 25 Sep 2025 10:30:00 GMT</pubDate>
+      <category>EXPECTED: LOW-MEDIUM (20-28 points)</category>
+      <category>political but heavy opinion markers + speculation + vague language</category>
+    </item>
+
+    <!-- Example 15: Entertainment with Public Money (should score higher) -->
+    <item>
+      <title>Governo federal investiu R$ 10 milhões em produção de filme nacional</title>
+      <link>http://test.example.com/edge-case-3</link>
+      <description><![CDATA[
+        O governo federal investiu R$ 10 milhões em produção de filme nacional através da Lei Rouanet, segundo dados divulgados pelo Ministério da Cultura. O filme foi lançado em setembro e teve grande repercussão. A produtora confirmou o recebimento dos recursos.
+      ]]></description>
+      <pubDate>Tue, 24 Sep 2025 14:00:00 GMT</pubDate>
+      <category>EXPECTED: MEDIUM-HIGH (42-50 points) - Entertainment context but government money = CHECKABLE</category>
+      <category>entertainment context + government + public money + attribution + currency</category>
+    </item>
+
+    <!-- Example 16: Vague political statement -->
+    <item>
+      <title>Fontes próximas ao governo revelam possíveis mudanças</title>
+      <link>http://test.example.com/edge-case-4</link>
+      <description><![CDATA[
+        Fontes próximas ao governo revelaram que provavelmente haverá mudanças importantes em breve. Segundo apurou o portal, alguns ministros podem deixar o cargo. A informação não foi confirmada oficialmente.
+      ]]></description>
+      <pubDate>Mon, 23 Sep 2025 11:45:00 GMT</pubDate>
+      <category>EXPECTED: LOW-MEDIUM (18-26 points)</category>
+      <category>political + vague attribution (fontes) + speculation (provavelmente, pode) + vague language</category>
+    </item>
+
+    <!-- ================================================================ -->
+    <!-- NOISE EXAMPLES - PURE NOISE (Expected Score: 0) -->
+    <!-- ================================================================ -->
+
+    <!-- Example 17: Pure Metadata/Navigation -->
+    <item>
+      <title>Clique aqui para ver mais notícias do dia</title>
+      <link>http://test.example.com/noise-1</link>
+      <description><![CDATA[
+        Clique aqui para ver mais notícias. Leia também nossas matérias especiais. Siga nosso canal no WhatsApp e no Instagram. Compartilhe com seus amigos no Facebook.
+      ]]></description>
+      <pubDate>Sun, 22 Sep 2025 08:00:00 GMT</pubDate>
+      <category>EXPECTED: ZERO (0 points) - Pure noise, should not be saved</category>
+      <category>navigation + social media prompts only</category>
+    </item>
+
+    <!-- Example 18: No Attribution, Pure Speculation -->
+    <item>
+      <title>Dizem que mudanças podem acontecer em breve</title>
+      <link>http://test.example.com/noise-2</link>
+      <description><![CDATA[
+        Dizem que algumas mudanças podem acontecer em breve no governo. Há rumores de que diversos ministros estão insatisfeitos. Provavelmente haverá novidades nos próximos dias.
+      ]]></description>
+      <pubDate>Sat, 21 Sep 2025 16:00:00 GMT</pubDate>
+      <category>EXPECTED: VERY LOW (8-15 points)</category>
+      <category>all vague language + no attribution + speculation only</category>
+    </item>
+
+  </channel>
+</rss>

@@ -1,0 +1,12 @@
+fastapi==0.104.1
+uvicorn[standard]==0.24.0
+motor==3.3.2
+pymongo==4.6.0
+pydantic==2.5.0
+pydantic-settings==2.1.0
+feedparser==6.0.10
+beautifulsoup4==4.12.2
+langdetect==1.0.9
+httpx==0.25.2
+apscheduler==3.10.4
+python-dotenv==1.0.0

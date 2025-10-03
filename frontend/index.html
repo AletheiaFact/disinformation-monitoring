@@ -1,0 +1,121 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Disinformation Monitoring Dashboard</title>
+    <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <h1>Disinformation Monitoring POC</h1>
+            <p class="subtitle">Automated Brazilian News Monitoring & AletheiaFact Integration</p>
+        </header>
+
+        <!-- Manual Submission Section -->
+        <section class="oauth-section">
+            <div class="card">
+                <h2>Manual Submission</h2>
+                <p class="section-description">Manually submit pending verification requests to AletheiaFact</p>
+                <div class="button-group">
+                    <button id="submit-pending-btn" class="btn btn-primary">Submit Pending Items</button>
+                </div>
+            </div>
+        </section>
+
+        <!-- Statistics Cards -->
+        <section class="stats-section">
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-value" id="total-today">0</div>
+                    <div class="stat-label">Extracted Today</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="total-submitted">0</div>
+                    <div class="stat-label">Submitted Total</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="success-rate">0%</div>
+                    <div class="stat-label">Success Rate</div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-value" id="avg-score">0</div>
+                    <div class="stat-label">Average Score</div>
+                </div>
+            </div>
+        </section>
+
+        <!-- Status Breakdown -->
+        <section class="status-section">
+            <div class="card">
+                <h2>Content Status Breakdown</h2>
+                <div class="status-grid" id="status-breakdown">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+        </section>
+
+        <!-- Content Table -->
+        <section class="content-section">
+            <div class="card">
+                <div class="card-header">
+                    <h2>Extracted Content</h2>
+                    <div class="filters">
+                        <select id="status-filter" class="filter-select">
+                            <option value="">All Status</option>
+                            <option value="pending">Pending</option>
+                            <option value="submitted">Submitted</option>
+                            <option value="rejected">Rejected</option>
+                            <option value="failed">Failed</option>
+                        </select>
+                        <select id="sort-by" class="filter-select">
+                            <option value="date">Sort by Date</option>
+                            <option value="score">Sort by Score</option>
+                        </select>
+                        <button id="refresh-btn" class="btn btn-small">Refresh</button>
+                    </div>
+                </div>
+                <div class="table-container">
+                    <table id="content-table">
+                        <thead>
+                            <tr>
+                                <th>Title</th>
+                                <th>Source</th>
+                                <th>Score</th>
+                                <th>Status</th>
+                                <th>Date</th>
+                                <th>Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="content-tbody">
+                            <!-- Populated by JavaScript -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </section>
+
+        <!-- Sources Status -->
+        <section class="sources-section">
+            <div class="card">
+                <h2>Active Sources</h2>
+                <div id="sources-list" class="sources-grid">
+                    <!-- Populated by JavaScript -->
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Modal for Content Details -->
+    <div id="content-modal" class="modal">
+        <div class="modal-content">
+            <span class="close">&times;</span>
+            <h2 id="modal-title"></h2>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+
+    <script src="/app.js"></script>
+</body>
+</html>

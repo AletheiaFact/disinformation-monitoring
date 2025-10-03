@@ -1,0 +1,33 @@
+# Environment
+.env
+*.pyc
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+env/
+ENV/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Testing
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Docker
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Documentation (not for version control)
+CLAUDE.md
+docs/
