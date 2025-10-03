@@ -23,18 +23,7 @@ docker-compose exec api python scripts/seed_sources.py
 
 ### 2. Configure OAuth2
 
-Create client in Ory Hydra:
-
-```bash
-ory create oauth2-client \
-  --endpoint http://localhost:4445 \
-  --name "Monitoring POC" \
-  --grant-type client_credentials \
-  --scope "openid offline_access" \
-  --token-endpoint-auth-method client_secret_basic
-```
-
-Update `.env` with generated credentials.
+Obtain M2M (machine-to-machine) OAuth2 credentials from AletheiaFact team and update `.env` with the provided client ID and secret.
 
 ### 3. Access
 
@@ -85,8 +74,6 @@ Required environment variables:
 ALETHEIA_BASE_URL=http://localhost:3000
 
 # Ory Hydra OAuth2
-ORY_HYDRA_ADMIN_URL=http://localhost:4445
-ORY_HYDRA_PUBLIC_URL=http://localhost:4444
 ORY_CLIENT_ID=your_client_id
 ORY_CLIENT_SECRET=your_secret
 ORY_SCOPE=openid offline_access
@@ -113,9 +100,7 @@ MAX_BATCH_SUBMISSION=100
 - POST /api/content/{id}/submit
 - DELETE /api/content/{id}
 
-**Stats & Integration**
-- GET /api/stats
-- GET /api/aletheia/status
+**Integration**
 - POST /api/aletheia/submit-pending
 
 ## Manual Operations
@@ -171,7 +156,7 @@ Impact areas detected via keywords: Politics, Health, Science, General.
 
 **No extractions**: Check scheduler logs, verify sources are active, manually trigger extraction
 
-**Submission failures**: Check `/api/aletheia/status`, review OAuth2 config, inspect failed content errors
+**Submission failures**: Review OAuth2 config, inspect failed content errors in dashboard
 
 **Low submission rate**: Review pre-filter scores in `/api/stats`, verify credibility levels
 
