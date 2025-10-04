@@ -274,7 +274,7 @@ class RSSExtractor:
 
 async def extract_all_sources(db: AsyncIOMotorDatabase) -> Dict[str, int]:
     """
-    Extract content from all active sources.
+    Extract content from all active sources (RSS + HTML).
 
     Args:
         db: MongoDB database instance
@@ -282,7 +282,7 @@ async def extract_all_sources(db: AsyncIOMotorDatabase) -> Dict[str, int]:
     Returns:
         Dictionary with extraction statistics
     """
-    extractor = RSSExtractor(db)
+    from app.extractors.extractor_factory import ExtractorFactory
 
     # Get all active sources
     sources = await db.source_configuration.find({'isActive': True}).to_list(None)
@@ -291,7 +291,7 @@ async def extract_all_sources(db: AsyncIOMotorDatabase) -> Dict[str, int]:
     source_results = {}
 
     for source in sources:
-        count = await extractor.extract_from_source(source)
+        count = await ExtractorFactory.extract_from_source(source, db)
         total_extracted += count
         source_results[source['name']] = count
 

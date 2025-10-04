@@ -207,9 +207,9 @@ async def extract_from_source(
         if not source:
             raise HTTPException(status_code=404, detail="Source not found")
 
-        # Extract content
-        extractor = RSSExtractor(db)
-        count = await extractor.extract_from_source(source)
+        # Extract content using appropriate extractor
+        from app.extractors.extractor_factory import ExtractorFactory
+        count = await ExtractorFactory.extract_from_source(source, db)
 
         logger.info(f"Manual extraction from {source['name']}: {count} articles")
         return {
