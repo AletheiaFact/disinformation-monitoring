@@ -65,7 +65,11 @@ class HTMLExtractor:
             article_selector = config.get('articleSelector', 'article')
             articles = soup.select(article_selector)
 
-            logger.info(f"Found {len(articles)} article elements on page")
+            # Limit number of articles to process (prevent timeout when following links)
+            max_articles = config.get('maxArticles', 20)
+            articles = articles[:max_articles]
+
+            logger.info(f"Found {len(articles)} article elements on page (processing up to {max_articles})")
 
             extracted_count = 0
 
@@ -94,6 +98,7 @@ class HTMLExtractor:
         """Parse individual article element to extract data"""
         selectors = config.get('selectors', {})
         url_prefix = config.get('urlPrefix', '')
+        follow_links = config.get('followLinks', False)
 
         # Extract URL
         url_selector = selectors.get('url', 'a')
@@ -134,7 +139,7 @@ class HTMLExtractor:
             logger.debug(f"URL already processed, skipping: {url}")
             return None
 
-        # Extract title
+        # Extract title from listing page
         title_selector = selectors.get('title', 'h3')
         title_elem = article_element.select_one(title_selector)
         title = title_elem.get_text(strip=True) if title_elem else ''
@@ -143,7 +148,17 @@ class HTMLExtractor:
             logger.debug(f"No title found for URL: {url}")
             return None
 
-        # Extract excerpt/content
+        # Two-step extraction: follow link to get full content
+        if follow_links:
+            logger.debug(f"Following link to extract full content: {url}")
+            full_article_data = await self._extract_full_article(url, title, source, config)
+            if full_article_data:
+                return full_article_data
+            else:
+                # If full extraction fails, fall back to excerpt extraction
+                logger.debug(f"Full extraction failed, falling back to excerpt for: {url}")
+
+        # Extract excerpt/content from listing page (fallback or default)
         excerpt_selector = selectors.get('excerpt', 'p, .excerpt')
         excerpt_elem = article_element.select_one(excerpt_selector)
         raw_content = excerpt_elem.get_text(strip=True) if excerpt_elem else title
@@ -205,6 +220,112 @@ class HTMLExtractor:
             'createdAt': datetime.utcnow(),
             'updatedAt': datetime.utcnow()
         }
+
+    async def _extract_full_article(self, url: str, title: str, source: Dict, config: Dict) -> Optional[Dict]:
+        """
+        Extract full content from individual article page.
+
+        Args:
+            url: Article URL
+            title: Article title from listing page
+            source: Source configuration
+            config: HTML configuration
+
+        Returns:
+            Complete article data dict or None if extraction fails
+        """
+        try:
+            article_page_config = config.get('articlePage', {})
+
+            # Fetch article page
+            async with httpx.AsyncClient(
+                timeout=30.0,
+                follow_redirects=True,
+                headers={'User-Agent': 'Mozilla/5.0 (compatible; NewsMonitor/1.0)'}
+            ) as client:
+                response = await client.get(url)
+                response.raise_for_status()
+                article_html = response.text
+
+            # Parse article page
+            soup = BeautifulSoup(article_html, 'html.parser')
+
+            # Extract full content body
+            content_selector = article_page_config.get('contentSelector', '.w-richtext')
+            content_elem = soup.select_one(content_selector)
+
+            if not content_elem:
+                logger.debug(f"No content found with selector '{content_selector}' on: {url}")
+                return None
+
+            # Extract all text from content element
+            raw_content = content_elem.get_text(separator=' ', strip=True)
+
+            # Extract fact-checkable content (allow more chars for full articles)
+            max_chars = article_page_config.get('maxChars', 2000)
+            content = extract_checkable_content(raw_content, max_chars=max_chars)
+
+            if len(content) < 100:
+                logger.debug(f"Full article content too short ({len(content)} chars): {url}")
+                return None
+
+            # Language detection
+            from langdetect import detect, LangDetectException
+            try:
+                language = detect(content[:500])
+                if language != 'pt':
+                    logger.debug(f"Non-Portuguese content detected ({language}): {url}")
+                    return None
+            except LangDetectException:
+                language = 'pt'
+
+            # Generate content hash
+            content_hash = generate_content_hash(url, content)
+
+            # Calculate pre-filter score
+            score_breakdown = self.pre_filter.calculate_score(
+                content=content,
+                title=title,
+                source_url=url,
+                credibility_level=source['credibilityLevel']
+            )
+
+            # Skip low-scoring content
+            if score_breakdown['total'] < settings.minimum_save_score:
+                logger.debug(
+                    f"Full article score ({score_breakdown['total']}) below minimum ({settings.minimum_save_score}), "
+                    f"skipping: {title[:50]}..."
+                )
+                return None
+
+            # Determine status
+            status = (
+                ContentStatus.PENDING
+                if score_breakdown['total'] >= settings.submission_score_threshold
+                else ContentStatus.REJECTED
+            )
+
+            return {
+                'sourceUrl': url,
+                'sourceName': source['name'],
+                'content': content,
+                'title': title,
+                'extractedAt': datetime.utcnow(),
+                'publishedAt': None,
+                'language': language,
+                'preFilterScore': score_breakdown['total'],
+                'status': status,
+                'contentHash': content_hash,
+                'createdAt': datetime.utcnow(),
+                'updatedAt': datetime.utcnow()
+            }
+
+        except httpx.HTTPError as e:
+            logger.warning(f"HTTP error fetching full article {url}: {e}")
+            return None
+        except Exception as e:
+            logger.warning(f"Error extracting full article {url}: {e}")
+            return None
 
     async def _save_content(self, content_dict: Dict) -> bool:
         """Save extracted content to database"""

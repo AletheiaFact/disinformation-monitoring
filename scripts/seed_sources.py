@@ -138,7 +138,14 @@ SOURCES = [
                 "url": "a",
                 "excerpt": ".new-artigo-sub"
             },
-            "urlPrefix": "https://www.brasilparalelo.com.br"
+            "urlPrefix": "https://www.brasilparalelo.com.br",
+            # Two-step scraping: follow links to extract full articles
+            "followLinks": True,
+            "maxArticles": 20,  # Limit to prevent API timeout
+            "articlePage": {
+                "contentSelector": ".w-richtext",
+                "maxChars": 2000
+            }
         }
     }
 ]
