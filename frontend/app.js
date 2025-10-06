@@ -14,6 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // Setup event listeners
 function setupEventListeners() {
+    document.getElementById('extract-all-btn').addEventListener('click', extractAllSources);
     document.getElementById('submit-pending-btn').addEventListener('click', submitPending);
     document.getElementById('refresh-btn').addEventListener('click', loadContent);
     document.getElementById('status-filter').addEventListener('change', handleFilterChange);
@@ -166,6 +167,42 @@ async function loadSources() {
 
     } catch (error) {
         console.error('Error loading sources:', error);
+    }
+}
+
+// Extract from all sources
+async function extractAllSources() {
+    if (!confirm('Trigger extraction from all active sources?')) {
+        return;
+    }
+
+    try {
+        const btn = document.getElementById('extract-all-btn');
+        btn.disabled = true;
+        btn.textContent = 'Extracting...';
+
+        const response = await fetch(`${API_BASE}/sources/extract-all`, {
+            method: 'POST'
+        });
+
+        const data = await response.json();
+
+        if (response.ok) {
+            alert(`Extraction complete!\nTotal extracted: ${data.totalExtracted}\nSources processed: ${data.sourceCount}`);
+            await loadStatistics();
+            await loadContent();
+            await loadSources();
+        } else {
+            throw new Error(data.detail || 'Extraction failed');
+        }
+
+    } catch (error) {
+        console.error('Error extracting sources:', error);
+        alert('Error: ' + error.message);
+    } finally {
+        const btn = document.getElementById('extract-all-btn');
+        btn.disabled = false;
+        btn.textContent = 'Extract All Sources';
     }
 }
 

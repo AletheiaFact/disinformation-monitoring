@@ -53,9 +53,9 @@ class AletheiaClient:
 
         payload = {
             "content": content['content'],
-            "receptionChannel": "automated_monitoring",
-            "reportType": report_type,
-            "impactArea": impact_area,  # Can be string or {label, value}
+            #"receptionChannel": "automated_monitoring",
+            #"reportType": report_type,
+            #"impactArea": impact_area,  # Can be string or {label, value}
             "source": [{"href": content['sourceUrl']}] if content.get('sourceUrl') else None,
             "publicationDate": content['publishedAt'].isoformat() if content.get('publishedAt') else None,
             "date": content['extractedAt'].isoformat(),
@@ -102,28 +102,4 @@ class AletheiaClient:
             logger.error(f"Error creating verification request: {e}")
             raise
 
-    def _extract_impact_area(self, content: Dict) -> Dict:
-        """
-        Extract impact area from content using keyword matching.
-
-        Args:
-            content: Content dictionary
-
-        Returns:
-            Impact area object
-        """
-        text = content['content'].lower()
-
-        political_kw = ["governo", "presidente", "ministro", "eleição", "congresso", "senado"]
-        health_kw = ["vacina", "covid", "saúde", "hospital", "médico", "doença"]
-        science_kw = ["cientista", "pesquisa", "estudo", "universidade", "descoberta"]
-
-        if any(kw in text for kw in political_kw):
-            return {"label": "Politics", "value": "politics"}
-        elif any(kw in text for kw in health_kw):
-            return {"label": "Health", "value": "health"}
-        elif any(kw in text for kw in science_kw):
-            return {"label": "Science", "value": "science"}
-        else:
-            return {"label": "General", "value": "general"}
 
