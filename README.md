@@ -31,14 +31,24 @@ Dashboard: http://localhost:8000
 
 ## Architecture
 
+### Multi-Source Extraction
+
+The system uses a **Factory Pattern** for flexible content extraction:
+
+- **ExtractorFactory**: Routes to appropriate extractor based on `sourceType`
+- **RSSExtractor**: Parses RSS/Atom feeds via feedparser (15 sources)
+- **HTMLExtractor**: Scrapes static HTML pages via BeautifulSoup (1 source)
+- **Future**: API extractors for JSON/REST sources
+
 ### Data Flow
 
 ```
-RSS Feeds → RSSExtractor → PreFilter (scoring) → MongoDB
-                                                      ↓
-                                          (score ≥ 30 & status=pending)
-                                                      ↓
-                                          SubmissionService → OAuth2 → AletheiaFact API
+RSS Feeds ──┐
+            ├→ ExtractorFactory → [RSSExtractor or HTMLExtractor] → PreFilter (scoring) → MongoDB
+HTML Pages ─┘                                                                                  ↓
+                                                                              (score ≥ 38 & status=pending)
+                                                                                               ↓
+                                                                   SubmissionService → OAuth2 → AletheiaFact API
 ```
 
 ### Pre-Filter Scoring (60 points total, threshold: 38)
@@ -70,13 +80,13 @@ RSS Feeds → RSSExtractor → PreFilter (scoring) → MongoDB
 - Official guidance: +6 pts
 - Health/safety advisories: +8 pts
 
-### RSS Sources (15 balanced sources)
+### Content Sources (16 total: 15 RSS + 1 HTML)
 
-**High Credibility** (4): G1, Folha de S.Paulo, BBC Brasil, Estado de S.Paulo
+**High Credibility** (4 RSS): G1, Folha de S.Paulo, BBC Brasil, Estado de S.Paulo
 
-**Medium Credibility** (6): CNN Brasil, Poder360, CartaCapital, Gazeta do Povo, Metrópoles, The Intercept Brasil
+**Medium Credibility** (6 RSS): CNN Brasil, Poder360, CartaCapital, Gazeta do Povo, Metrópoles, The Intercept Brasil
 
-**Low Credibility** (5): Terça Livre, Jornal da Cidade Online, Brasil 247, Conexão Política, DCM
+**Low Credibility** (5 RSS + 1 HTML): Terça Livre, Jornal da Cidade Online, Brasil 247, Conexão Política, DCM, Brasil Paralelo
 
 ## Configuration
 

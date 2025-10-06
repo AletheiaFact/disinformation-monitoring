@@ -19,251 +19,34 @@ from urllib.parse import urlparse
 from typing import Dict
 import logging
 
-logger = logging.getLogger(__name__)
-
-# ============================================================================
-# GOVERNMENT & INSTITUTIONAL ENTITIES (High Priority)
-# ============================================================================
-GOVERNMENT_ENTITIES = {
-    # Executive Branch
-    'presidente', 'vice-presidente', 'ministro', 'ministério',
-    'governo federal', 'palácio do planalto', 'casa civil',
-
-    # Legislative Branch
-    'congresso', 'congresso nacional', 'senado', 'senador',
-    'câmara', 'câmara dos deputados', 'deputado federal', 'deputado',
-
-    # Judiciary
-    'stf', 'supremo tribunal federal', 'stj', 'superior tribunal',
-    'trf', 'tribunal regional federal', 'justiça federal',
-
-    # Regulatory Agencies
-    'anvisa', 'anatel', 'aneel', 'ans', 'anac',
-    'bacen', 'banco central', 'ibama', 'icmbio',
-    'inep', 'inss', 'funai', 'ipea',
-
-    # Oversight & Audit
-    'tse', 'tribunal superior eleitoral', 'tcu', 'tribunal de contas',
-    'cgu', 'controladoria', 'pgr', 'procuradoria-geral',
-    'mpf', 'ministério público federal', 'polícia federal',
-
-    # State Level
-    'governador', 'vice-governador', 'secretário estadual',
-    'assembleia legislativa', 'deputado estadual',
-
-    # Municipal Level
-    'prefeito', 'vice-prefeito', 'secretário municipal',
-    'câmara municipal', 'vereador'
-}
-
-# ============================================================================
-# POLITICAL & SOCIAL KEYWORDS (High Priority)
-# ============================================================================
-POLITICAL_KEYWORDS = {
-    # Government Actions
-    'governo', 'política', 'eleição', 'eleições', 'partido político', 'partido',
-    'coligação', 'aliança', 'oposição', 'situação',
-
-    # Legislation
-    'lei', 'projeto de lei', 'pl', 'pec', 'proposta de emenda',
-    'medida provisória', 'mp', 'decreto', 'portaria', 'resolução',
-    'reforma', 'aprovado', 'vetado', 'sancionado', 'promulgado',
-
-    # Investigations & Corruption
-    'corrupção', 'desvio', 'propina', 'suborno', 'lavagem de dinheiro',
-    'cpi', 'comissão parlamentar', 'investigação', 'inquérito',
-    'operação', 'delação', 'delação premiada', 'denúncia',
-    'indiciado', 'acusado', 'réu', 'condenado',
-
-    # Judicial Process
-    'justiça', 'tribunal', 'julgamento', 'sentença', 'processo',
-    'ação', 'mandado', 'liminar', 'habeas corpus', 'impeachment'
-}
-
-SOCIAL_RELEVANCE_KEYWORDS = {
-    # Human Rights & Violence
-    'direitos humanos', 'violência', 'crime', 'homicídio', 'assassinato',
-    'segurança pública', 'polícia', 'violência policial', 'chacina',
-
-    # Public Services
-    'educação pública', 'saúde pública', 'sus', 'sistema único de saúde',
-    'hospital público', 'escola pública', 'universidade pública',
-
-    # Social Issues
-    'desigualdade', 'pobreza', 'fome', 'miséria', 'sem-teto', 'moradia',
-    'desemprego', 'trabalhador', 'sindicato', 'greve', 'manifestação',
-
-    # Environment
-    'meio ambiente', 'desmatamento', 'queimada', 'clima', 'aquecimento global',
-    'mudança climática', 'poluição', 'sustentabilidade',
-
-    # Indigenous & Minorities
-    'indígena', 'quilombola', 'comunidade tradicional', 'demarcação',
-    'terra indígena', 'racismo', 'discriminação'
-}
-
-HEALTH_KEYWORDS = {
-    'vacina', 'vacinação', 'imunização', 'dose', 'campanha de vacinação',
-    'covid', 'covid-19', 'coronavirus', 'pandemia', 'epidemia', 'surto',
-    'vírus', 'doença', 'enfermidade', 'síndrome',
-    'saúde', 'hospital', 'uti', 'leito', 'médico', 'enfermeiro',
-    'tratamento', 'medicamento', 'remédio', 'farmácia',
-    'ministério da saúde', 'anvisa', 'vigilância sanitária',
-    'sus', 'sistema único de saúde'
-}
-
-SCIENCE_KEYWORDS = {
-    'cientista', 'pesquisador', 'pesquisa científica', 'pesquisa',
-    'estudo', 'estudo científico', 'descoberta', 'experimento',
-    'universidade', 'faculdade', 'instituto de pesquisa',
-    'ciência', 'científico', 'tecnologia', 'inovação',
-    'publicação', 'artigo científico', 'revista científica',
-    'peer review', 'nasa', 'fapesp', 'cnpq', 'capes'
-}
-
-# ============================================================================
-# ATTRIBUTION KEYWORDS (Claim Indicators)
-# ============================================================================
-ATTRIBUTION_KEYWORDS = {
-    # Strong Attribution Verbs
-    'afirmou', 'afirma', 'declarou', 'declara', 'confirmou', 'confirma',
-    'anunciou', 'anuncia', 'revelou', 'revela', 'garantiu', 'garante',
-
-    # Medium Attribution
-    'disse', 'diz', 'alegou', 'alega', 'defendeu', 'defende',
-    'criticou', 'critica', 'acusou', 'acusa', 'negou', 'nega',
-
-    # Reverse Attribution
-    'segundo', 'de acordo com', 'conforme', 'para',
-
-    # Evidence/Proof
-    'comprovou', 'comprova', 'demonstrou', 'demonstra',
-    'provou', 'prova', 'evidenciou', 'evidencia',
-    'denunciou', 'denuncia', 'apontou', 'aponta'
-}
-
-# ============================================================================
-# ENTERTAINMENT KEYWORDS (Low Priority - Penalty)
-# ============================================================================
-ENTERTAINMENT_KEYWORDS = {
-    # Reality TV (heaviest penalty)
-    'bbb', 'big brother', 'big brother brasil', 'a fazenda', 'fazenda',
-    'no limite', 'reality show', 'reality', 'eliminação', 'paredão',
-
-    # Celebrity/Gossip
-    'celebridade', 'famoso', 'famosa', 'artista', 'ator', 'atriz',
-    'cantor', 'cantora', 'modelo', 'influencer', 'influenciador',
-    'affair', 'romance', 'namoro', 'casamento', 'separação', 'divórcio',
-    'festa', 'balada', 'look', 'desfile', 'red carpet', 'tapete vermelho',
-
-    # TV/Movies
-    'novela', 'série', 'seriado', 'filme', 'cinema',
-    'estreia', 'lançamento', 'trailer', 'teaser',
-    'capítulo', 'episódio', 'temporada', 'final', 'personagem',
-
-    # Music
-    'álbum', 'disco', 'música', 'canção', 'clipe', 'videoclipe',
-    'show', 'turnê', 'tour', 'palco', 'feat', 'featuring',
-    'hit', 'sucesso musical', 'top 10', 'chart',
-
-    # Internet Culture
-    'memes', 'meme', 'viral', 'viralizou', 'trending', 'trend',
-    'tiktoker', 'youtuber', 'streamer', 'lives', 'live'
-}
-
-SPORTS_KEYWORDS = {
-    # Match Results
-    'gol', 'gols', 'placar', 'resultado', 'vitória', 'derrota', 'empate',
-    'venceu', 'perdeu', 'empatou', 'marcou', 'time', 'equipe',
-
-    # Game Elements
-    'jogo', 'partida', 'rodada', 'confronto', 'clássico',
-    'primeiro tempo', 'segundo tempo', 'prorrogação', 'pênalti', 'pênaltis',
-
-    # Competitions
-    'campeonato', 'torneio', 'copa', 'taça', 'troféu',
-    'libertadores', 'sul-americana', 'brasileirão', 'série a', 'série b',
-    'champions league', 'mundial', 'olimpíadas',
-
-    # People/Places
-    'jogador', 'atleta', 'técnico', 'treinador', 'árbitro', 'juiz',
-    'torcida', 'torcedor', 'estádio', 'arena', 'ginásio'
-}
-
-# Controversy keywords that override sports penalty
-CONTROVERSY_KEYWORDS = {
-    'corrupção', 'investigação', 'investigado', 'denúncia', 'denunciado',
-    'escândalo', 'fraude', 'manipulação', 'doping', 'suborno',
-    'propina', 'desvio', 'irregularidade', 'ilegal'
-}
-
-# ============================================================================
-# VAGUE LANGUAGE & OFFICIAL GUIDANCE (Scoring Modifiers)
-# ============================================================================
-
-# Speculation patterns (heavy penalty - non-checkable speculation)
-SPECULATION_KEYWORDS = {
-    'pode ser que', 'é possível que', 'provavelmente', 'possivelmente',
-    'talvez', 'há rumores', 'dizem que', 'fontes não identificadas',
-    'acredita-se', 'aparentemente', 'supostamente', 'presumivelmente'
-}
-
-# Conditional/future statements (not fact-checkable)
-CONDITIONAL_PATTERN = re.compile(
-    r'\b(se acontecer|caso ocorra|haveremos de|iremos|vamos fazer|poderá|'
-    r'poderia|teria|seria|faria|quando houver)\b',
-    re.IGNORECASE
+from app.constants import (
+    GOVERNMENT_ENTITIES,
+    POLITICAL_KEYWORDS,
+    SOCIAL_RELEVANCE_KEYWORDS,
+    HEALTH_KEYWORDS,
+    SCIENCE_KEYWORDS,
+    ATTRIBUTION_KEYWORDS,
+    ENTERTAINMENT_KEYWORDS,
+    SPORTS_KEYWORDS,
+    CONTROVERSY_KEYWORDS,
+    SPECULATION_KEYWORDS,
+    VAGUE_QUANTIFIERS,
+    OFFICIAL_GUIDANCE_KEYWORDS,
+    HEALTH_SAFETY_ADVISORY,
+    NOISE_TERMS,
+    HIGH_CREDIBILITY_SOURCES,
+    MEDIUM_CREDIBILITY_SOURCES,
+    PERCENTAGE_PATTERN,
+    CURRENCY_BRL_PATTERN,
+    CURRENCY_USD_PATTERN,
+    LARGE_NUMBER_PATTERN,
+    DATE_PATTERN,
+    NUMBER_PATTERN,
+    SENTENCE_DELIMITER_PATTERN,
+    CONDITIONAL_PATTERN
 )
 
-# Vague quantifiers (mild penalty)
-VAGUE_QUANTIFIERS = {
-    'alguns', 'diversos', 'vários', 'muitos', 'poucos',
-    'em breve', 'logo', 'futuramente', 'em algum momento'
-}
-
-# Official guidance patterns (should NOT be penalized - these are fact-checkable directives)
-OFFICIAL_GUIDANCE_KEYWORDS = {
-    'é recomendado', 'é recomendável', 'orienta-se', 'deve-se',
-    'é obrigatório', 'é necessário', 'é exigido', 'determina que',
-    'conforme determina', 'segundo a lei', 'nos termos da', 'exige',
-    'registro de', 'deve conter', 'é obrigatória'
-}
-
-# Health/Safety advisory keywords (high priority for fact-checking)
-HEALTH_SAFETY_ADVISORY = {
-    'vigilância sanitária', 'anvisa', 'ministério da saúde',
-    'alerta sanitário', 'notificação', 'orientação sanitária',
-    'risco à saúde', 'intoxicação', 'contaminação', 'surto',
-    'apevisa', 'visa', 'agência sanitária', 'sesab', 'secretaria de saúde'
-}
-
-# ============================================================================
-# SOURCE CREDIBILITY (Domain Lists)
-# ============================================================================
-HIGH_CREDIBILITY_SOURCES = {
-    'g1.globo.com', 'folha.uol.com.br', 'gazetadopovo.com.br',
-    'estadao.com.br', 'uol.com.br', 'bbc.com', 'bbc.com/portuguese',
-    'cnnbrasil.com.br', 'band.com.br', 'r7.com',
-    'noticias.uol.com.br', 'valor.globo.com', 'exame.com'
-}
-
-MEDIUM_CREDIBILITY_SOURCES = {
-    'cartacapital.com.br', 'poder360.com.br', 'metropoles.com',
-    'correiobraziliense.com.br', 'gazetadopovo.com.br',
-    'istoedinheiro.com.br', 'veja.abril.com.br'
-}
-
-# ============================================================================
-# COMPILED REGEX PATTERNS (Performance Optimization)
-# ============================================================================
-PERCENTAGE_PATTERN = re.compile(r'\d+([,\.]\d+)?%')
-CURRENCY_BRL_PATTERN = re.compile(r'r\$\s*[\d\.,]+\s*(mil|milhões|bilhões|milhão|bilhão)?', re.IGNORECASE)
-CURRENCY_USD_PATTERN = re.compile(r'us\$\s*[\d\.,]+\s*(mil|milhões|bilhões|milhão|bilhão)?', re.IGNORECASE)
-LARGE_NUMBER_PATTERN = re.compile(r'\d+\s*(mil|milhões|bilhões|milhão|bilhão)', re.IGNORECASE)
-DATE_PATTERN = re.compile(r'\d{1,2}\s+de\s+(janeiro|fevereiro|março|abril|maio|junho|julho|agosto|setembro|outubro|novembro|dezembro)', re.IGNORECASE)
-YEAR_PATTERN = re.compile(r'\b(19|20)\d{2}\b')
-NUMBER_PATTERN = re.compile(r'\d+')
-SENTENCE_DELIMITER_PATTERN = re.compile(r'[.!?]')
+logger = logging.getLogger(__name__)
 
 
 class PreFilter:
@@ -493,10 +276,7 @@ class PreFilter:
             score += 8  # High priority for health advisories with verifiable elements
 
         # F. Pure Noise Detection (navigation, CTAs, metadata)
-        noise_terms = ['clique aqui', 'clique para', 'veja mais', 'saiba mais',
-                       'leia mais', 'acesse', 'confira', 'veja também',
-                       'notícias do dia', 'últimas notícias']
-        noise_count = sum(1 for term in noise_terms if term in text)
+        noise_count = sum(1 for term in NOISE_TERMS if term in text)
         if noise_count >= 1:
             score -= 30  # Heavy penalty for pure noise content
 

@@ -1,4 +1,5 @@
 """HTML-based content extraction using BeautifulSoup and Selenium"""
+import re
 from bs4 import BeautifulSoup
 from typing import Dict, List, Optional
 import logging

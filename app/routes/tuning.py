@@ -1,4 +1,5 @@
 """Tuning endpoints for testing and optimizing extraction and filtering logic"""
+import re
 from fastapi import APIRouter, HTTPException
 from typing import List, Dict
 import feedparser
