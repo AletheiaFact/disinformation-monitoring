@@ -26,13 +26,14 @@ class Settings(BaseSettings):
     recaptcha_token: Optional[str] = None
 
     # Scheduler
-    extraction_interval_minutes: int = 30
+    extraction_interval_minutes: int = 30  # How often to extract content from sources
+    submission_interval_minutes: int = 60  # How often to submit pending content to AletheiaFact
 
     # Filtering and Submission
     minimum_save_score: int = 20  # Minimum score to save content to database
     submission_score_threshold: int = 38  # Minimum score to submit to AletheiaFact (increased from 35)
     max_batch_submission: int = 100
-    auto_submit_enabled: bool = False  # Enable/disable automatic submission to AletheiaFact
+    auto_submit_enabled: bool = False  # Enable/disable scheduled automatic submission to AletheiaFact
 
     class Config:
         env_file = ".env"

@@ -18,19 +18,12 @@ scheduler = AsyncIOScheduler()
 async def scheduled_extraction():
     """
     Periodic task to extract content from all active sources.
-    Runs every 30 minutes (configurable).
+    Runs based on EXTRACTION_INTERVAL_MINUTES configuration.
     """
     try:
         logger.info("Starting scheduled extraction...")
         result = await extract_all_sources(database.db)
         logger.info(f"Scheduled extraction complete: {result}")
-
-        # Automatically submit pending content if auto-submit is enabled
-        if settings.auto_submit_enabled and result['totalExtracted'] > 0:
-            logger.info("Auto-submit enabled, proceeding with submission...")
-            await scheduled_submission()
-        elif result['totalExtracted'] > 0:
-            logger.info(f"Auto-submit disabled, {result['totalExtracted']} items extracted but not submitted")
 
     except Exception as e:
         logger.error(f"Error in scheduled extraction: {e}")
@@ -39,7 +32,7 @@ async def scheduled_extraction():
 async def scheduled_submission():
     """
     Submit pending content to AletheiaFact.
-    Called after each extraction run.
+    Runs based on SUBMISSION_INTERVAL_MINUTES configuration (only if AUTO_SUBMIT_ENABLED=true).
     """
     try:
         logger.info("Starting scheduled submission...")
@@ -59,15 +52,28 @@ def setup_scheduler():
         scheduled_extraction,
         trigger=IntervalTrigger(minutes=settings.extraction_interval_minutes),
         id='extract_all_sources',
-        name='Extract from all RSS sources',
+        name='Extract from all sources',
         replace_existing=True
-        # Will run after the configured interval, not immediately on startup
     )
 
-    logger.info(
-        f"Scheduler configured: extraction every {settings.extraction_interval_minutes} minutes, "
-        f"auto-submit: {'enabled' if settings.auto_submit_enabled else 'disabled'}"
-    )
+    # Add submission job - runs every Y minutes (only if auto-submit is enabled)
+    if settings.auto_submit_enabled:
+        scheduler.add_job(
+            scheduled_submission,
+            trigger=IntervalTrigger(minutes=settings.submission_interval_minutes),
+            id='submit_pending_content',
+            name='Submit pending content to AletheiaFact',
+            replace_existing=True
+        )
+        logger.info(
+            f"Scheduler configured: extraction every {settings.extraction_interval_minutes} minutes, "
+            f"submission every {settings.submission_interval_minutes} minutes (auto-submit enabled)"
+        )
+    else:
+        logger.info(
+            f"Scheduler configured: extraction every {settings.extraction_interval_minutes} minutes, "
+            f"auto-submit disabled (use manual submission via dashboard)"
+        )
 
 
 def start_scheduler():
