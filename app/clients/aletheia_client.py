@@ -47,8 +47,6 @@ class AletheiaClient:
             logger.error(f"Failed to get OAuth2 access token: {e}")
             raise Exception(f"OAuth2 authentication failed: {e}")
 
-        impact_area = self._extract_impact_area(content)
-
         report_type = "Unattributed"
 
         payload = {
@@ -56,7 +54,7 @@ class AletheiaClient:
             #"receptionChannel": "automated_monitoring",
             #"reportType": report_type,
             #"impactArea": impact_area,  # Can be string or {label, value}
-            "source": [{"href": content['sourceUrl']}] if content.get('sourceUrl') else None,
+            "source": content.get('sourceUrl'),
             "publicationDate": content['publishedAt'].isoformat() if content.get('publishedAt') else None,
             "date": content['extractedAt'].isoformat(),
             "heardFrom": f"Automated Monitoring - {content['sourceName']}",

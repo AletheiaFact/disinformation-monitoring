@@ -88,7 +88,7 @@ async def submit_content(
     content_id: str,
     db: AsyncIOMotorDatabase = Depends(get_database)
 ):
-    """Manually retry submission of a content item to AletheiaFact"""
+    """Manually submit a content item to AletheiaFact"""
     try:
         submission_service = SubmissionService(db)
         success = await submission_service.submit_content(content_id)

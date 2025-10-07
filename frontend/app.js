@@ -102,7 +102,7 @@ function renderContentTable(content) {
     const tbody = document.getElementById('content-tbody');
 
     if (!content || content.length === 0) {
-        tbody.innerHTML = '<tr><td colspan="6" class="empty-state">No content found</td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No content found</td></tr>';
         return;
     }
 
@@ -124,16 +124,13 @@ function renderContentTable(content) {
             </td>
             <td>${item.sourceName}</td>
             <td>${item.preFilterScore}</td>
-            <td><span class="status-badge badge-${item.status}">${item.status}</span></td>
-            <td>${formatDate(item.extractedAt)}</td>
             <td>
-                ${item.status === 'failed' || item.status === 'pending' ?
-                    `<button class="btn btn-info" onclick="retrySubmission('${item._id}')">Retry</button>` :
-                    ''}
+                <span class="status-badge badge-${item.status}">${item.status}</span>
                 ${item.verificationRequestId ?
-                    `<small>VR: ${item.verificationRequestId.substring(0, 8)}</small>` :
+                    `<br><small style="color: #7f8c8d;">VR: ${item.verificationRequestId.substring(0, 8)}</small>` :
                     ''}
             </td>
+            <td>${formatDate(item.extractedAt)}</td>
         </tr>
     `).join('');
 }
@@ -241,27 +238,6 @@ async function submitPending() {
     }
 }
 
-// Retry submission for specific content
-async function retrySubmission(contentId) {
-    try {
-        const response = await fetch(`${API_BASE}/content/${contentId}/submit`, {
-            method: 'POST'
-        });
-
-        const data = await response.json();
-
-        if (response.ok) {
-            alert('Submission successful!');
-            await loadContent();
-        } else {
-            throw new Error(data.detail || 'Submission failed');
-        }
-
-    } catch (error) {
-        console.error('Error retrying submission:', error);
-        alert('Error: ' + error.message);
-    }
-}
 
 // Show content details in modal
 async function showContentDetails(contentId) {

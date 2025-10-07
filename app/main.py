@@ -8,7 +8,7 @@ import logging
 from app.config import settings
 from app.database import database
 from app.scheduler import setup_scheduler, start_scheduler, shutdown_scheduler
-from app.routes import sources, content, stats, aletheia, tuning
+from app.routes import sources, content, stats, aletheia
 
 # Configure logging
 logging.basicConfig(
@@ -70,7 +70,6 @@ app.include_router(sources.router)
 app.include_router(content.router)
 app.include_router(stats.router)
 app.include_router(aletheia.router)
-app.include_router(tuning.router)
 
 # Mount frontend static files
 try:
