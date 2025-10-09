@@ -202,14 +202,6 @@ Impact areas detected via keywords: Politics, Health, Science, General.
 
 **Duplicates**: Automatically handled via URL normalization + indexed checks
 
-## Success Metrics
+## Architecture Diagram
+<img width="1744" height="1694" alt="image" src="https://github.com/user-attachments/assets/a47d1a0f-c6d1-4190-9417-dbb865ee0750" />
 
-- 100+ articles extracted daily
-- 20+ verification requests submitted daily
-- 90%+ submission success rate
-- Stable OAuth2 authentication
-- Continuous operation for 1+ week
-
-## License
-
-Proof-of-concept project for AletheiaFact integration.
