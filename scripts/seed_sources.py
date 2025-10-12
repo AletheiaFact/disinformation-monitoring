@@ -37,7 +37,7 @@ SOURCES = [
     {
         "name": "Estado de S.Paulo",
         "sourceType": "rss",
-        "rssUrl": "https://www.estadao.com.br/rss/brasil.xml",
+        "rssUrl": "https://www.estadao.com.br/arc/outboundfeeds/feeds/rss/sections/politica/",
         "credibilityLevel": "high",
         "isActive": True
     },
@@ -87,27 +87,27 @@ SOURCES = [
     },
 
     # Low Credibility (5 sources - PRIORITY for misinformation monitoring)
-    {
-        "name": "Terça Livre",
-        "sourceType": "rss",
-        "rssUrl": "https://tercalivre.com.br/feed/",
-        "credibilityLevel": "low",
-        "isActive": True
-    },
-    {
-        "name": "Jornal da Cidade Online",
-        "sourceType": "rss",
-        "rssUrl": "https://www.jornaldacidadeonline.com.br/noticias/feed",
-        "credibilityLevel": "low",
-        "isActive": True
-    },
-    {
-        "name": "Brasil 247",
-        "sourceType": "rss",
-        "rssUrl": "https://www.brasil247.com/feed",
-        "credibilityLevel": "low",
-        "isActive": True
-    },
+    # {
+    #     "name": "Terça Livre",
+    #     "sourceType": "rss",
+    #     "rssUrl": "https://tercalivre.com.br/feed/",
+    #     "credibilityLevel": "low",
+    #     "isActive": True
+    # },
+    # {
+    #     "name": "Jornal da Cidade Online",
+    #     "sourceType": "rss",
+    #     "rssUrl": "https://www.jornaldacidadeonline.com.br/noticias/feed",
+    #     "credibilityLevel": "low",
+    #     "isActive": True
+    # },
+    # {
+    #     "name": "Brasil 247",
+    #     "sourceType": "rss",
+    #     "rssUrl": "https://www.brasil247.com/feed",
+    #     "credibilityLevel": "low",
+    #     "isActive": True
+    # },
     {
         "name": "Conexão Política",
         "sourceType": "rss",
@@ -127,16 +127,16 @@ SOURCES = [
     {
         "name": "Brasil Paralelo",
         "sourceType": "html",
-        "htmlUrl": "https://www.brasilparalelo.com.br/artigos",
+        "htmlUrl": "https://www.brasilparalelo.com.br/noticias",
         "credibilityLevel": "low",
         "isActive": True,
         "htmlConfig": {
-            "listingUrl": "https://www.brasilparalelo.com.br/artigos",
-            "articleSelector": ".new-artigo",
+            "listingUrl": "https://www.brasilparalelo.com.br/noticias",
+            "articleSelector": ".new-noticia",
             "selectors": {
-                "title": ".new-artigo-titulo",
+                "title": ".new-noticia-titulo",
                 "url": "a",
-                "excerpt": ".new-artigo-sub"
+                "excerpt": ".new-noticia-sub"
             },
             "urlPrefix": "https://www.brasilparalelo.com.br",
             # Two-step scraping: follow links to extract full articles

@@ -10,7 +10,6 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY app/ ./app/
 COPY frontend/ ./frontend/
 COPY scripts/ ./scripts/
-COPY tests/ ./tests/
 
 # Expose port
 EXPOSE 8000

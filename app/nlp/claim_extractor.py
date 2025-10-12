@@ -180,20 +180,25 @@ class ClaimExtractor:
 
     def extract_from_html(self, html_content: str, max_chars: int = 500) -> str:
         """
-        Extract fact-checkable sentences from HTML content.
+        Extract fact-checkable content blocks from HTML while preserving context.
+
+        NEW STRATEGY: Block-based extraction (not sentence stitching)
 
         Process:
-        1. Parse HTML and remove noise elements
-        2. Split text into sentences
-        3. Score each sentence for fact-checkability
-        4. Select top-scoring sentences up to max_chars
+        1. Parse HTML and extract paragraph blocks
+        2. Score each block for fact-checkability
+        3. Select the highest-scoring coherent block
+        4. Extract complete sentences from that block
+
+        This prevents context manipulation by keeping related sentences together
+        and avoiding concatenation of unrelated content from different parts of the article.
 
         Args:
             html_content: Raw HTML content from RSS feed
             max_chars: Maximum characters to extract (default: 500)
 
         Returns:
-            Clean text with only fact-checkable sentences
+            Clean text from a single coherent block with fact-checkable content
         """
         # Parse HTML
         soup = BeautifulSoup(html_content, 'html.parser')
@@ -202,61 +207,127 @@ class ClaimExtractor:
         for element in soup(['script', 'style', 'iframe', 'noscript', 'nav', 'header', 'footer']):
             element.decompose()
 
-        # Extract text
-        text = soup.get_text(separator=' ', strip=True)
-        text = ' '.join(text.split())  # Normalize whitespace
+        # Extract paragraph blocks (preserve structure)
+        blocks = self._extract_paragraph_blocks(soup)
 
-        # Split into sentences
-        sentences = self._split_sentences(text)
-
-        # Score and filter sentences
-        scored_sentences = []
-        for sentence in sentences:
-            score = self.scorer.score_sentence(sentence)
-            if score > 0:  # Only keep positive-scoring sentences
-                scored_sentences.append((score, sentence))
-                logger.debug(f"Sentence score={score}: {sentence[:60]}...")
-
-        # Sort by score (highest first)
-        scored_sentences.sort(reverse=True, key=lambda x: x[0])
-
-        # Select top sentences until char limit (target: 150-300 chars)
-        selected = []
-        char_count = 0
-        min_score_threshold = 15  # Only select sentences with decent checkability
-
-        for score, sentence in scored_sentences:
-            # Skip low-scoring sentences
-            if score < min_score_threshold:
-                break
-
-            # Stop if we have 2+ sentences and would exceed limit
-            if char_count + len(sentence) > max_chars and len(selected) >= 2:
-                break
-
-            selected.append(sentence)
-            char_count += len(sentence)
-
-            # Stop if we have 2-3 high-quality sentences (150-300 chars target)
-            if len(selected) >= 2 and char_count >= 150:
-                break
-            if len(selected) >= 3 and char_count >= 250:
-                break
-
-        if not selected:
-            logger.debug("No fact-checkable sentences found")
+        if not blocks:
+            logger.debug("No content blocks found")
             return ""
 
-        # Reconstruct in original order (find position in original text)
-        selected_ordered = sorted(selected, key=lambda s: text.find(s) if text.find(s) != -1 else 999999)
-        result = '. '.join(selected_ordered)
+        # Score each block
+        scored_blocks = []
+        for block_text in blocks:
+            # Split block into sentences
+            sentences = self._split_sentences(block_text)
 
-        # Ensure proper punctuation
-        if result and not result.endswith('.'):
-            result += '.'
+            if not sentences:
+                continue
 
-        logger.debug(f"Extracted {len(selected)} sentences ({len(result)} chars) from {len(sentences)} total")
+            # Calculate block score (average of top sentences + bonus for multiple checkable sentences)
+            sentence_scores = []
+            for sentence in sentences:
+                score = self.scorer.score_sentence(sentence)
+                if score > 0:
+                    sentence_scores.append((score, sentence))
+
+            if not sentence_scores:
+                continue
+
+            # Block scoring: 70% top sentence + 30% average of all positive sentences
+            sentence_scores.sort(reverse=True, key=lambda x: x[0])
+            top_score = sentence_scores[0][0]
+            avg_score = sum(s[0] for s in sentence_scores) / len(sentence_scores)
+            block_score = (top_score * 0.7) + (avg_score * 0.3)
+
+            # Bonus for multiple checkable sentences (coherent fact-checkable context)
+            if len(sentence_scores) >= 2:
+                block_score += 10
+            if len(sentence_scores) >= 3:
+                block_score += 5
+
+            scored_blocks.append((block_score, block_text, sentence_scores))
+            logger.debug(f"Block score={block_score:.1f}, sentences={len(sentence_scores)}, length={len(block_text)}")
+
+        if not scored_blocks:
+            logger.debug("No fact-checkable blocks found")
+            return ""
+
+        # Sort blocks by score (highest first)
+        scored_blocks.sort(reverse=True, key=lambda x: x[0])
+
+        # Select the best block
+        best_score, best_block, best_sentences = scored_blocks[0]
+
+        # Return the COMPLETE best block (trimmed to max_chars if needed)
+        # DO NOT join sentences - return the block AS-IS to preserve context
+        result = best_block.strip()
+
+        # If block exceeds max_chars, truncate intelligently at sentence boundary
+        if len(result) > max_chars:
+            # Try to truncate at last sentence boundary before max_chars
+            truncated = result[:max_chars]
+
+            # Find last sentence ending (., !, ?) before max_chars
+            last_sentence_end = max(
+                truncated.rfind('.'),
+                truncated.rfind('!'),
+                truncated.rfind('?')
+            )
+
+            if last_sentence_end > 100:  # Only truncate if we keep substantial content
+                result = result[:last_sentence_end + 1].strip()
+            else:
+                # No good sentence boundary, do hard truncate
+                result = truncated.strip() + '...'
+
+        logger.debug(
+            f"Extracted complete block ({len(result)} chars) with score={best_score:.1f}"
+        )
         return result
+
+    def _extract_paragraph_blocks(self, soup: BeautifulSoup) -> List[str]:
+        """
+        Extract paragraph blocks from HTML, preserving context.
+
+        Paragraphs are natural content blocks that maintain coherent context.
+        We prefer extracting from a single paragraph over stitching sentences
+        from different parts of the article.
+
+        Args:
+            soup: BeautifulSoup parsed HTML
+
+        Returns:
+            List of paragraph text blocks
+        """
+        blocks = []
+
+        # Try to find paragraph elements
+        paragraph_tags = soup.find_all(['p', 'div'])
+
+        for tag in paragraph_tags:
+            # Skip if tag contains other paragraph tags (nested structure)
+            if tag.find(['p', 'div']):
+                continue
+
+            text = tag.get_text(separator=' ', strip=True)
+            text = ' '.join(text.split())  # Normalize whitespace
+
+            # Only keep substantial paragraphs (at least 100 chars)
+            if len(text) >= 100:
+                blocks.append(text)
+
+        # Fallback: if no paragraph tags found, split by double newlines
+        if not blocks:
+            full_text = soup.get_text(separator='\n', strip=True)
+            potential_blocks = re.split(r'\n\s*\n', full_text)
+
+            for block in potential_blocks:
+                block = ' '.join(block.split())
+                if len(block) >= 100:
+                    blocks.append(block)
+
+        logger.debug(f"Extracted {len(blocks)} paragraph blocks from HTML")
+        return blocks
 
     def _split_sentences(self, text: str) -> List[str]:
         """

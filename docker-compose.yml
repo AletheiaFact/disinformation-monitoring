@@ -11,7 +11,7 @@ services:
     networks:
       - monitoring-network
     healthcheck:
-      test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
+      test: echo 'db.runCommand("ping").ok'
       interval: 10s
       timeout: 5s
       retries: 5
