@@ -4,6 +4,10 @@ services:
   mongodb:
     image: mongo:7
     container_name: monitoring-mongodb
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=${MONGODB_USER}
+      - MONGO_INITDB_ROOT_PASSWORD=${MONGODB_PASSWORD}
+      - MONGO_INITDB_DATABASE=${DATABASE_NAME}
     volumes:
       - mongodb_data:/data/db
     ports:
@@ -11,7 +15,7 @@ services:
     networks:
       - monitoring-network
     healthcheck:
-      test: echo 'db.runCommand("ping").ok'
+      test: mongosh --username ${MONGODB_USER} --password ${MONGODB_PASSWORD} --eval 'db.runCommand("ping").ok' --quiet
       interval: 10s
       timeout: 5s
       retries: 5
@@ -24,9 +28,11 @@ services:
     ports:
       - "8000:8000"
     environment:
-      - MONGODB_URL=mongodb://mongodb:27017
-      - DATABASE_NAME=monitoring_poc
-      - LOG_LEVEL=info
+      - MONGODB_URL=mongodb://${MONGODB_USER}:${MONGODB_PASSWORD}@mongodb:27017/${DATABASE_NAME}?authSource=admin
+      - DATABASE_NAME=${DATABASE_NAME}
+      - LOG_LEVEL=${LOG_LEVEL}
+      - MONGODB_USER=${MONGODB_USER}
+      - MONGODB_PASSWORD=${MONGODB_PASSWORD}
     env_file:
       - .env
     depends_on:
