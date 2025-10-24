@@ -17,74 +17,61 @@ scheduler = AsyncIOScheduler()
 
 async def scheduled_extraction():
     """
-    Periodic task to extract content from all active sources.
+    Periodic task to extract content from all active sources, then optionally submit pending items.
     Runs based on EXTRACTION_INTERVAL_MINUTES configuration.
+
+    Flow:
+    1. Extract content from all sources
+    2. If AUTO_SUBMIT_ENABLED=true: Automatically submit pending verification requests to AletheiaFact
 
     Protected by APScheduler's max_instances=1 to prevent concurrent execution.
     """
     try:
         logger.info("Starting scheduled extraction...")
-        result = await extract_all_sources(database.db)
-        logger.info(f"Scheduled extraction complete: {result}")
+        extraction_result = await extract_all_sources(database.db)
+        logger.info(f"Scheduled extraction complete: {extraction_result}")
+
+        if settings.auto_submit_enabled:
+            logger.info("Starting automatic submission of pending content (AUTO_SUBMIT_ENABLED=true)...")
+            submission_service = SubmissionService(database.db)
+            submission_result = await submission_service.submit_pending_content()
+            logger.info(f"Automatic submission complete: {submission_result}")
+        else:
+            logger.info("Automatic submission skipped (AUTO_SUBMIT_ENABLED=false). Use manual submission via API or dashboard.")
 
     except Exception as e:
-        logger.error(f"Error in scheduled extraction: {e}")
-
-
-async def scheduled_submission():
-    """
-    Submit pending content to AletheiaFact.
-    Runs based on SUBMISSION_INTERVAL_MINUTES configuration (only if AUTO_SUBMIT_ENABLED=true).
-
-    Protected by APScheduler's max_instances=1 to prevent concurrent execution.
-    """
-    try:
-        logger.info("Starting scheduled submission...")
-        submission_service = SubmissionService(database.db)
-        result = await submission_service.submit_pending_content()
-        logger.info(f"Scheduled submission complete: {result}")
-
-    except Exception as e:
-        logger.error(f"Error in scheduled submission: {e}")
+        logger.error(f"Error in scheduled extraction/submission: {e}")
 
 
 def setup_scheduler():
-    """Configure and start the scheduler with race condition protection"""
+    """
+    Configure and start the scheduler with race condition protection.
 
-    # Add extraction job - runs every X minutes
-    # RACE CONDITION PROTECTION:
-    # - max_instances=1: Only one extraction job can run at a time
-    # - coalesce=True: If job is still running when next trigger fires, skip the new trigger
-    # - replace_existing=True: Prevent duplicate job registration
+    Single unified job that:
+    1. Extracts content from all sources
+    2. Automatically submits pending verification requests
+
+    This ensures submissions happen immediately after extraction without needing separate timers.
+    """
+
     scheduler.add_job(
         scheduled_extraction,
         trigger=IntervalTrigger(minutes=settings.extraction_interval_minutes),
-        id='extract_all_sources',
-        name='Extract from all sources',
-        max_instances=1,  # Prevent concurrent extraction jobs
-        coalesce=True,    # Skip missed runs if previous job still running
+        id='extract_and_submit',
+        name='Extract content and submit pending VRs',
+        max_instances=1,
+        coalesce=True,
         replace_existing=True
     )
 
-    # Add submission job - runs every Y minutes (only if auto-submit is enabled)
     if settings.auto_submit_enabled:
-        scheduler.add_job(
-            scheduled_submission,
-            trigger=IntervalTrigger(minutes=settings.submission_interval_minutes),
-            id='submit_pending_content',
-            name='Submit pending content to AletheiaFact',
-            max_instances=1,  # Prevent concurrent submission jobs
-            coalesce=True,    # Skip missed runs if previous job still running
-            replace_existing=True
-        )
         logger.info(
-            f"Scheduler configured: extraction every {settings.extraction_interval_minutes} minutes, "
-            f"submission every {settings.submission_interval_minutes} minutes (auto-submit enabled)"
+            f"Scheduler configured: extraction + automatic submission every {settings.extraction_interval_minutes} minutes"
         )
     else:
         logger.info(
-            f"Scheduler configured: extraction every {settings.extraction_interval_minutes} minutes, "
-            f"auto-submit disabled (use manual submission via dashboard)"
+            f"Scheduler configured: extraction every {settings.extraction_interval_minutes} minutes "
+            f"(auto-submit disabled - use manual submission via API)"
         )
 
 

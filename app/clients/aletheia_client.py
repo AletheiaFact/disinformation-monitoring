@@ -47,24 +47,22 @@ class AletheiaClient:
             logger.error(f"Failed to get OAuth2 access token: {e}")
             raise Exception(f"OAuth2 authentication failed: {e}")
 
-        report_type = "Unattributed"
+#        report_type = "Unattributed"
 
         payload = {
             "content": content['content'],
             #"sourceChannel": "automated_monitoring",
             #"reportType": report_type,
             #"impactArea": impact_area,  # Can be string or {label, value}
-            "source": [content.get('sourceUrl')],
+            "source": [{"href": content.get('sourceUrl')}] if content.get('sourceUrl') else [],
             "publicationDate": content['publishedAt'].isoformat() if content.get('publishedAt') else None,
-            "date": content['extractedAt'].isoformat(),
+            "date": content['extractedAt'].isoformat(),  # ISO string for @IsDate() decorator
             "heardFrom": f"Automated Monitoring - {content['sourceName']}",
         }
 
-        # Add recaptcha token if configured (required by API)
-        if settings.recaptcha_token:
-            payload["recaptcha"] = settings.recaptcha_token
+        #if settings.recaptcha_token:
+        #    payload["recaptcha"] = settings.recaptcha_token
 
-        # Remove None values to avoid validation errors
         payload = {k: v for k, v in payload.items() if v is not None}
 
         try:
