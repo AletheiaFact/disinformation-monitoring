@@ -6,8 +6,8 @@ from datetime import datetime
 from typing import Dict, List, Optional
 import logging
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from pymongo.errors import DuplicateKeyError
 
+from app.extractors.base_extractor import BaseExtractor
 from app.utils.hash import generate_content_hash
 from app.utils.url_normalizer import normalize_url
 from app.filters.pre_filter import PreFilter
@@ -18,8 +18,12 @@ from app.nlp.claim_extractor import extract_checkable_content
 logger = logging.getLogger(__name__)
 
 
-class RSSExtractor:
-    """Extract content from RSS feeds"""
+class RSSExtractor(BaseExtractor):
+    """Extract content from RSS feeds
+
+    Inherits shared functionality from BaseExtractor for content saving
+    and source statistics updates.
+    """
 
     def __init__(self, db: AsyncIOMotorDatabase):
         """
@@ -28,7 +32,7 @@ class RSSExtractor:
         Args:
             db: MongoDB database instance
         """
-        self.db = db
+        super().__init__(db)
         self.pre_filter = PreFilter()
 
     async def extract_from_source(self, source: Dict) -> int:
@@ -223,53 +227,6 @@ class RSSExtractor:
                     continue
 
         return None
-
-    async def _save_content(self, content_dict: Dict) -> bool:
-        """
-        Save extracted content to database.
-
-        Args:
-            content_dict: Content dictionary
-
-        Returns:
-            True if saved successfully, False if duplicate
-        """
-        try:
-            await self.db.extracted_content.insert_one(content_dict)
-            logger.debug(f"Saved content: {content_dict['title'][:50]}...")
-            return True
-
-        except DuplicateKeyError:
-            logger.debug(f"Duplicate content detected: {content_dict['contentHash']}")
-            return False
-
-        except Exception as e:
-            logger.error(f"Error saving content: {e}")
-            return False
-
-    async def _update_source_stats(self, source: Dict, extracted_count: int):
-        """
-        Update source statistics after extraction.
-
-        Args:
-            source: Source configuration
-            extracted_count: Number of articles extracted
-        """
-        try:
-            await self.db.source_configuration.update_one(
-                {'_id': source['_id']},
-                {
-                    '$set': {
-                        'lastExtraction': datetime.utcnow(),
-                        'updatedAt': datetime.utcnow()
-                    },
-                    '$inc': {
-                        'totalExtracted': extracted_count
-                    }
-                }
-            )
-        except Exception as e:
-            logger.error(f"Error updating source stats: {e}")
 
 
 async def extract_all_sources(db: AsyncIOMotorDatabase) -> Dict[str, int]:

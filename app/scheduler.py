@@ -19,6 +19,8 @@ async def scheduled_extraction():
     """
     Periodic task to extract content from all active sources.
     Runs based on EXTRACTION_INTERVAL_MINUTES configuration.
+
+    Protected by APScheduler's max_instances=1 to prevent concurrent execution.
     """
     try:
         logger.info("Starting scheduled extraction...")
@@ -33,6 +35,8 @@ async def scheduled_submission():
     """
     Submit pending content to AletheiaFact.
     Runs based on SUBMISSION_INTERVAL_MINUTES configuration (only if AUTO_SUBMIT_ENABLED=true).
+
+    Protected by APScheduler's max_instances=1 to prevent concurrent execution.
     """
     try:
         logger.info("Starting scheduled submission...")
@@ -45,14 +49,20 @@ async def scheduled_submission():
 
 
 def setup_scheduler():
-    """Configure and start the scheduler"""
+    """Configure and start the scheduler with race condition protection"""
 
     # Add extraction job - runs every X minutes
+    # RACE CONDITION PROTECTION:
+    # - max_instances=1: Only one extraction job can run at a time
+    # - coalesce=True: If job is still running when next trigger fires, skip the new trigger
+    # - replace_existing=True: Prevent duplicate job registration
     scheduler.add_job(
         scheduled_extraction,
         trigger=IntervalTrigger(minutes=settings.extraction_interval_minutes),
         id='extract_all_sources',
         name='Extract from all sources',
+        max_instances=1,  # Prevent concurrent extraction jobs
+        coalesce=True,    # Skip missed runs if previous job still running
         replace_existing=True
     )
 
@@ -63,6 +73,8 @@ def setup_scheduler():
             trigger=IntervalTrigger(minutes=settings.submission_interval_minutes),
             id='submit_pending_content',
             name='Submit pending content to AletheiaFact',
+            max_instances=1,  # Prevent concurrent submission jobs
+            coalesce=True,    # Skip missed runs if previous job still running
             replace_existing=True
         )
         logger.info(

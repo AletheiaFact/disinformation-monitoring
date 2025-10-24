@@ -1,13 +1,13 @@
-"""HTML-based content extraction using BeautifulSoup and Selenium"""
+"""HTML-based content extraction using BeautifulSoup and httpx"""
 import re
 from bs4 import BeautifulSoup
 from typing import Dict, List, Optional
 import logging
 from motor.motor_asyncio import AsyncIOMotorDatabase
-from pymongo.errors import DuplicateKeyError
 from datetime import datetime
 import httpx
 
+from app.extractors.base_extractor import BaseExtractor
 from app.utils.hash import generate_content_hash
 from app.utils.url_normalizer import normalize_url
 from app.filters.pre_filter import PreFilter
@@ -18,8 +18,12 @@ from app.config import settings
 logger = logging.getLogger(__name__)
 
 
-class HTMLExtractor:
-    """Extract content from HTML pages"""
+class HTMLExtractor(BaseExtractor):
+    """Extract content from HTML pages
+
+    Inherits shared functionality from BaseExtractor for content saving
+    and source statistics updates.
+    """
 
     def __init__(self, db: AsyncIOMotorDatabase):
         """
@@ -28,7 +32,7 @@ class HTMLExtractor:
         Args:
             db: MongoDB database instance
         """
-        self.db = db
+        super().__init__(db)
         self.pre_filter = PreFilter()
 
     async def extract_from_source(self, source: Dict) -> int:
@@ -327,34 +331,3 @@ class HTMLExtractor:
         except Exception as e:
             logger.warning(f"Error extracting full article {url}: {e}")
             return None
-
-    async def _save_content(self, content_dict: Dict) -> bool:
-        """Save extracted content to database"""
-        try:
-            await self.db.extracted_content.insert_one(content_dict)
-            logger.debug(f"Saved content: {content_dict['title'][:50]}...")
-            return True
-        except DuplicateKeyError:
-            logger.debug(f"Duplicate content detected: {content_dict['contentHash']}")
-            return False
-        except Exception as e:
-            logger.error(f"Error saving content: {e}")
-            return False
-
-    async def _update_source_stats(self, source: Dict, extracted_count: int):
-        """Update source statistics after extraction"""
-        try:
-            await self.db.source_configuration.update_one(
-                {'_id': source['_id']},
-                {
-                    '$set': {
-                        'lastExtraction': datetime.utcnow(),
-                        'updatedAt': datetime.utcnow()
-                    },
-                    '$inc': {
-                        'totalExtracted': extracted_count
-                    }
-                }
-            )
-        except Exception as e:
-            logger.error(f"Error updating source stats: {e}")

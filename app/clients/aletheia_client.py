@@ -51,10 +51,10 @@ class AletheiaClient:
 
         payload = {
             "content": content['content'],
-            #"receptionChannel": "automated_monitoring",
+            "sourceChannel": "automated_monitoring",
             #"reportType": report_type,
             #"impactArea": impact_area,  # Can be string or {label, value}
-            "source": content.get('sourceUrl'),
+            "source": [content.get('sourceUrl')],
             "publicationDate": content['publishedAt'].isoformat() if content.get('publishedAt') else None,
             "date": content['extractedAt'].isoformat(),
             "heardFrom": f"Automated Monitoring - {content['sourceName']}",
