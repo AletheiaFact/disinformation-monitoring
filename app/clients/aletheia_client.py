@@ -51,7 +51,7 @@ class AletheiaClient:
 
         payload = {
             "content": content['content'],
-            #"sourceChannel": "automated_monitoring",
+            "sourceChannel": "automated_monitoring",
             #"reportType": report_type,
             #"impactArea": impact_area,  # Can be string or {label, value}
             "source": [{"href": content.get('sourceUrl')}] if content.get('sourceUrl') else [],
