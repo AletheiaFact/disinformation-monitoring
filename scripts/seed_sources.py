@@ -132,11 +132,11 @@ SOURCES = [
         "isActive": True,
         "htmlConfig": {
             "listingUrl": "https://www.brasilparalelo.com.br/noticias",
-            "articleSelector": ".new-noticia",
+            "articleSelector": "._00-hobbit",
             "selectors": {
-                "title": ".new-noticia-titulo",
+                "title": "h3._00-hobbit-title",
                 "url": "a",
-                "excerpt": ".new-noticia-sub"
+                "excerpt": "h3._00-hobbit-title"
             },
             "urlPrefix": "https://www.brasilparalelo.com.br",
             # Two-step scraping: follow links to extract full articles
